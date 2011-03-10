@@ -1,0 +1,41 @@
+.item-list .field-widget-term-reference-tree ul,
+.block .field-widget-term-reference-tree ul,
+.field-widget-term-reference-tree ul
+{
+  list-style-type: none; 
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+}
+
+.item-list .field-widget-term-reference-tree ul ul,
+.block .field-widget-term-reference-tree ul ul,
+.field-widget-term-reference-tree ul ul
+{
+  margin-left: 1.5em;
+}
+
+.item-list .field-widget-term-reference-tree ul .form-item,
+.block .field-widget-term-reference-tree ul .form-item,
+.field-widget-term-reference-tree ul .form-item {
+  margin: 0;
+  padding: 0;
+}
+
+.term-reference-tree-button {
+  width: .7em;
+  height: .7em;
+  display: inline-block;
+  border: 2px solid #888;
+  background-color: #ccc;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.term-reference-tree-button.term-reference-tree-collapsed {
+  background-color: #449;
+}
+
+.field-widget-term-reference-tree .form-item {
+  display: inline-block;
+}
