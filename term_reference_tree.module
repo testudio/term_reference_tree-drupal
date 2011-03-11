@@ -221,6 +221,7 @@ function _term_reference_tree_render($element) {
   $last_element = false;
    
   while(count($terms) > 0) {
+    $has_children = false;
     $term = array_shift($terms);
     
     # Get a copy of the next term
@@ -231,6 +232,8 @@ function _term_reference_tree_render($element) {
     } else {
       $last_element = true;
     }
+    
+    if(!$last_element && $next_depth > $term->depth) $has_children = true;
     
     $key = $term->tid;
     if ($key === 0) {

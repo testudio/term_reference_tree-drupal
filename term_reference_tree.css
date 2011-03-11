@@ -39,3 +39,7 @@
 .field-widget-term-reference-tree .form-item {
   display: inline-block;
 }
+
+.field-widget-term-reference-tree .disabled {
+  opacity: .5;
+}
