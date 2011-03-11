@@ -9,9 +9,39 @@ function term_reference_tree_field_widget_info() {
       'behaviors' => array(
         'multiple values' => FIELD_BEHAVIOR_CUSTOM, 
         'default value' => FIELD_BEHAVIOR_DEFAULT,
-      ),      
+      ),
+      'settings' => array(
+        'start_minimized' => 0,
+        'leaves_only' => 0,
+      ),
     ),
   );
+}
+
+function term_reference_tree_field_widget_settings_form($field, $instance) {
+  $widget = $instance['widget'];
+  $settings = $widget['settings'];
+  $form = array();
+  
+  if($widget['type'] == 'term_reference_tree') {
+    $form['start_minimized'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Start minimized'),
+      '#description' => t('Make the tree appear minimized on the form by default'),
+      '#default_value' => $settings['start_minimized'],
+      '#return_value' => 1,
+    );
+    
+    $form['leaves_only'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Leaves only'),
+      '#description' => t("Don't allow the user to select items that have children"),
+      '#default_value' => $settings['leaves_only'],
+      '#return_value' => 1,
+    );
+  }
+  
+  return $form;
 }
 
 function term_reference_tree_element_info() {
@@ -109,6 +139,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $has_value = isset($items[0][$value_key]);
   $properties = _options_properties($type, $multiple, $required, $has_value);
   $options = _term_reference_tree_get_options($terms);
+  $settings = $instance['widget']['settings'];
   
   #dsm($items, 'term_reference_tree_field_widget_form items');
   #dsm($options, 'term_reference_tree_field_widget_form options');
@@ -137,6 +168,8 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#options_tree'] = $terms;
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
       $element['#max_choices'] = $field['cardinality'];
+      $element['#start_minimized'] = $settings['start_minimized'];
+      $element['#leaves_only'] = $settings['leaves_only'];
 
       $value = (is_array($element['#value'])) ? $element['#value'] : array();
       break;
@@ -242,32 +275,44 @@ function _term_reference_tree_render($element) {
     
     $element += array($key => array());
     
-    $e = array(
-      '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
-      '#title' => $term->name,
-      '#return_value' => $key,
-      '#default_value' => isset($value[$key]) ? $key : NULL,
-      '#attributes' => isset($element['#attributes']) ? $element['#attributes'] : NULL,
-      '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
-    );
-    
-    #dsm($e['#type'], 'element type');
-    if($e['#type'] == 'radio') {
-      $parents_for_id = array_merge($element['#parents'], array($key));
-      $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
-      $e['#parents'] = $element['#parents'];
-      #dsm($parents_for_id, "PARENTS");
+    if(!$element['#leaves_only'] || !$has_children) {
+      $e = array(
+        '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
+        '#title' => $term->name,
+        '#return_value' => $key,
+        '#default_value' => isset($value[$key]) ? $key : NULL,
+        '#attributes' => isset($element['#attributes']) ? $element['#attributes'] : NULL,
+        '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+      );
+      
+      #dsm($e['#type'], 'element type');
+      if($e['#type'] == 'radio') {
+        $parents_for_id = array_merge($element['#parents'], array($key));
+        $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
+        $e['#parents'] = $element['#parents'];
+        #dsm($parents_for_id, "PARENTS");
+      }
+    } else {
+      $e = array(
+        '#markup' => "<div class='parent-term'>{$term->name}</div>",
+      );
     }
     
     if($first_element) {
       $e['#prefix'] = "<ul class='term-reference-tree' data-max-choices='$max_choices'><li data-depth='{$term->depth}'><div class='term-reference-tree-button'></div>";
     } else {      
       if($term->depth > $prev_depth) {
-        $e['#prefix'] = "<ul><li data-depth='{$term->depth}'><div class='term-reference-tree-button'></div>";
+        $e['#prefix'] = "<ul><li data-depth='{$term->depth}'>";
       } elseif($term->depth < $prev_depth) {
-        $e['#prefix'] = "<li data-depth='{$term->depth}'><div class='term-reference-tree-button'></div>";
+        $e['#prefix'] = "<li data-depth='{$term->depth}'>";
       } else {
-        $e['#prefix'] = "<li data-depth='{$term->depth}'><div class='term-reference-tree-button'></div>";
+        $e['#prefix'] = "<li data-depth='{$term->depth}'>";
+      }
+      
+      if($has_children) {
+        $e['#prefix'] .= "<div class='term-reference-tree-button'></div>";
+      } else {
+        $e['#prefix'] .= "<div class='no-term-reference-tree-button'></div>";
       }
     }
     
