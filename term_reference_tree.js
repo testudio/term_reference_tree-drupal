@@ -2,7 +2,11 @@
   $(function() {
     $('.term-reference-tree-button').click(function() {
       $(this).toggleClass('term-reference-tree-collapsed');
-      $(this).siblings('ul').slideToggle();
+      $(this).siblings('ul').slideToggle('fast');
+    });
+    
+    $('.expandbutton').click(function() {
+      $(this).siblings('.term-reference-tree-button').trigger('click');
     });
      
     $('.term-reference-tree').each(function() {
@@ -18,7 +22,7 @@
     var maxChoices = item.attr('data-max-choices');
     var count = item.find(':checked').length;
     
-    if(count >= maxChoices) {
+    if(maxChoices > 0 && count >= maxChoices) {
       item.find('input[type=checkbox]:not(:checked)').attr('disabled', 'disabled').parent().addClass('disabled');
     } else {
       item.find('input[type=checkbox]').removeAttr('disabled').parent().removeClass('disabled');

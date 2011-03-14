@@ -300,13 +300,17 @@ function _term_reference_tree_render($element) {
     
     if($first_element) {
       $e['#prefix'] = "<ul class='term-reference-tree' data-max-choices='$max_choices'><li data-depth='{$term->depth}'><div class='term-reference-tree-button'></div>";
-    } else {      
+    } else {
+      $expand_class = '';
+      if($has_children && $element['#leaves_only'])
+        $expand_class = " class='expandbutton'";
+        
       if($term->depth > $prev_depth) {
-        $e['#prefix'] = "<ul><li data-depth='{$term->depth}'>";
+        $e['#prefix'] = "<ul><li data-depth='{$term->depth}'$expand_class>";
       } elseif($term->depth < $prev_depth) {
-        $e['#prefix'] = "<li data-depth='{$term->depth}'>";
+        $e['#prefix'] = "<li data-depth='{$term->depth}'$expand_class>";
       } else {
-        $e['#prefix'] = "<li data-depth='{$term->depth}'>";
+        $e['#prefix'] = "<li data-depth='{$term->depth}'$expand_class>";
       }
       
       if($has_children) {
