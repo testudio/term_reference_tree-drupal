@@ -199,7 +199,7 @@ function _term_reference_tree_widget_validate($element, &$form_state) {
   if($element['#type'] == 'checkbox_tree') {    
     foreach($children as $c) {
       $child = $element[$c];
-      if($child['#value'] !== 0) {
+      if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
         array_push($value, array($element['#value_key'] => $child['#value']));
       } 
     }
@@ -208,10 +208,17 @@ function _term_reference_tree_widget_validate($element, &$form_state) {
     # grab the value of the first one.
     if(is_array($children) && count($children) > 0) {
       $child = $element[reset($children)];
-      if($child['#value'] !== 0) {
+      if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
         array_push($value, array($element['#value_key'] => $child['#value']));
       }       
     }
+  }
+  
+  
+  # TODO:  If form fails validation, for some reason this reverts to the normal
+  # term reference widget.
+	if ($element['#required'] && count($value) == 0) {
+    form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
   }
   
   form_set_value($element, $value, $form_state);
@@ -268,6 +275,8 @@ function _term_reference_tree_render($element) {
     
     if(!$last_element && $next_depth > $term->depth) $has_children = true;
     
+		//dsm("{$term->name} depth: " . $term->depth . " -> $next_depth" . ($has_children ? "(+)" : ""));
+		
     $key = $term->tid;
     if ($key === 0) {
       $key = '0';
@@ -299,7 +308,18 @@ function _term_reference_tree_render($element) {
     }
     
     if($first_element) {
-      $e['#prefix'] = "<ul class='term-reference-tree' data-max-choices='$max_choices'><li data-depth='{$term->depth}'><div class='term-reference-tree-button'></div>";
+			$sm = '';
+			if($element['#start_minimized']) {
+				$sm = " term-reference-tree-start-minimized";
+			}
+			
+      $e['#prefix'] = "<ul class='term-reference-tree$sm' data-max-choices='$max_choices'><li data-depth='{$term->depth}'>";
+			
+			if($has_children) {
+				$e['#prefix'] .= "<div class='term-reference-tree-button'></div>";
+			} else {
+				$e['#prefix'] .= "<div class='no-term-reference-tree-button'></div>";
+			}
     } else {
       $expand_class = '';
       if($has_children && $element['#leaves_only'])
@@ -339,3 +359,4 @@ function _term_reference_tree_render($element) {
   #dsm($element, '_term_reference_tree_render finished');
   return $element;
 }
+
