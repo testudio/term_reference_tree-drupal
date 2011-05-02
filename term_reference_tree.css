@@ -55,3 +55,9 @@
   display: inline-block;
   font-weight: bold;
 }
+
+.form-type-checkbox-tree .error {
+	background-image: none;
+	border: 2px solid red;
+	padding: 3px;
+}

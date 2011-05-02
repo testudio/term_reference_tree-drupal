@@ -79,21 +79,21 @@ function term_reference_tree_theme() {
   );
 }
 
-function term_reference_tree_process_checkbox_tree($element) {
-  $element = _term_reference_tree_render($element);
+function term_reference_tree_process_checkbox_tree($element, $form_state) {
+  $element = _term_reference_tree_render($element, $form_state);
   #dsm($element, 'term_reference_tree_process_checkbox_tree');
   return $element;
 }
 
-function term_reference_tree_process_radio_tree($element) {
+function term_reference_tree_process_radio_tree($element, $form_state) {
   #dsm($element, 'term_reference_tree_process_radio_tree');
-  $element = _term_reference_tree_render($element);
+  $element = _term_reference_tree_render($element, $form_state);
   return $element;
 }
 
 function theme_checkbox_tree($variables) {
   # Lifted from theme_checkboxes in form.inc for now
-  #dsm($variables, 'theme_checkbox_tree');
+  //dsm($variables, 'theme_checkbox_tree');
   $element = $variables['element'];
   
   # TODO: In the checkboxes widget, for some reason the children get there
@@ -105,6 +105,15 @@ function theme_checkbox_tree($variables) {
     $attributes['id'] = $element['#id'];
   }
   $attributes['class'][] = 'form-checkboxes';
+  
+  if(form_get_error($element)) {
+		$attributes['class'][] = 'error';
+	}
+	
+	if(!empty($element['#required'])) {
+		$attributes['class'][] = 'required';
+	}
+	
   if (!empty($element['#attributes']['class'])) {
     $attributes['class'] = array_merge($attributes['class'], $element['#attributes']['class']);
   }
@@ -137,7 +146,8 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $type = $instance['widget']['type'];
   $multiple = $field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED;  
   $has_value = isset($items[0][$value_key]);
-  $properties = _options_properties($type, $multiple, $required, $has_value);
+  #$properties = _options_properties($type, $multiple, $required, $has_value);
+  $properties = array();
   $options = _term_reference_tree_get_options($terms);
   $settings = $instance['widget']['settings'];
   
@@ -161,8 +171,10 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   # A switch statement, in case we ever add more widgets to this module
   switch($instance['widget']['type']) {
     case 'term_reference_tree':
-      drupal_add_js($path . '/term_reference_tree.js', 'file');
-      drupal_add_css(drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css', 'file');
+			$element['#attached']['js'] = array($path . '/term_reference_tree.js');
+			$element['#attached']['css'] = array($path . '/term_reference_tree.css');
+      #drupal_add_js($path . '/term_reference_tree.js', 'file');
+      #drupal_add_css($path . '/term_reference_tree.css', 'file');
       $element['#type'] = $multiple ? 'checkbox_tree' : 'radio_tree';      
       $element['#options'] = $options;
       $element['#options_tree'] = $terms;
@@ -191,7 +203,7 @@ function term_reference_tree_process_term_reference_tree($element) {
   return $element;
 }
 
-function _term_reference_tree_widget_validate($element, &$form_state) {
+function _term_reference_tree_widget_validate(&$element, &$form_state) {
   #dsm($element, '_term_reference_tree_widget_validate');
   $children = element_children($element);
   $value = array();
@@ -244,8 +256,10 @@ function _term_reference_tree_get_options($terms) {
   return $options;
 }
 
-function _term_reference_tree_render($element) {
+function _term_reference_tree_render($element, $form_state) {
   #dsm($element, '_term_reference_tree_render');
+  #dsm($form_state, '_term_ref form state');
+  
   
   $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
   $terms = !empty($element['#options_tree']) ? $element['#options_tree'] : array();
