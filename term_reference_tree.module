@@ -1,6 +1,9 @@
 <?php
 // $id$
 
+/**
+ * Implements hook_field_widget_info().
+ */
 function term_reference_tree_field_widget_info() {
   return array(
     'term_reference_tree' => array (
@@ -18,6 +21,9 @@ function term_reference_tree_field_widget_info() {
   );
 }
 
+/**
+ * Implements hook_field_widget_settings_form().
+ */
 function term_reference_tree_field_widget_settings_form($field, $instance) {
   $widget = $instance['widget'];
   $settings = $widget['settings'];
@@ -44,6 +50,9 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
   return $form;
 }
 
+/**
+ * Implements hook_element_info().
+ */
 function term_reference_tree_element_info() {
   $types = array(
     'checkbox_tree' => array(
@@ -67,6 +76,9 @@ function term_reference_tree_element_info() {
   return $types;
 }
 
+/**
+ * Implements hook_theme().
+ */
 function term_reference_tree_theme() {
   #dsm('term_reference_tree_theme');
   return array(
@@ -79,18 +91,57 @@ function term_reference_tree_theme() {
   );
 }
 
+/**
+ * Process the checkbox_tree widget.
+ * 
+ * This function processes the checkbox_tree widget.  At this point it just calls
+ * the generalized drawing function that draws both the checkbox_tree and radio_tree
+ * widgets.
+ * 
+ * @param $element
+ *   The element to be drawn.
+ * @param $form_state
+ *   The form state.
+ * 
+ * @return
+ *   The processed element.
+ */
 function term_reference_tree_process_checkbox_tree($element, $form_state) {
   $element = _term_reference_tree_render($element, $form_state);
   #dsm($element, 'term_reference_tree_process_checkbox_tree');
   return $element;
 }
 
+/**
+ * Process the radio_tree widget.
+ * 
+ * This function processes the radio_tree widget.  At this point it just calls
+ * the generalized drawing function that draws both the checkbox_tree and radio_tree
+ * widgets.
+ * 
+ * @param $element
+ *   The element to be drawn.
+ * @param $form_state
+ *   The form state.
+ * 
+ * @return
+ *   The processed element.
+ */
 function term_reference_tree_process_radio_tree($element, $form_state) {
   #dsm($element, 'term_reference_tree_process_radio_tree');
   $element = _term_reference_tree_render($element, $form_state);
   return $element;
 }
 
+/**
+ * Returns HTML for a checkbox_tree form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *
+ * @ingroup themeable
+ */
 function theme_checkbox_tree($variables) {
   # Lifted from theme_checkboxes in form.inc for now
   //dsm($variables, 'theme_checkbox_tree');
@@ -120,12 +171,24 @@ function theme_checkbox_tree($variables) {
   return '<div' . drupal_attributes($attributes) . '>' . (!empty($element['#children']) ? $element['#children'] : '') . '</div>';
 }
 
+/**
+ * Returns HTML for a radio_tree form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *
+ * @ingroup themeable
+ */
 function theme_radio_tree($variables) {
   #$element = $variables['element'];
   #dsm($variables, 'theme_radio_tree');
   return theme_checkbox_tree($variables);
 }
 
+/**
+ * Implements hook_widget_field_form().
+ */
 function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   #dsm(func_get_args(), 'term_reference_tree_field_widget_form args');
   $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
@@ -198,11 +261,28 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   return $element;
 }
 
+/*
 function term_reference_tree_process_term_reference_tree($element) {
   #dsm($element, 'term_reference_tree_process_term_reference_tree');
   return $element;
 }
+*/
 
+/**
+ * Validates the term reference tree widgets.
+ * 
+ * This function sets the value of the tree widgets into a form that Drupal
+ * can understand, and also checks if the field is required and has been
+ * left empty.
+ * 
+ * @param $element
+ *   The element to be validated.
+ * @param $form_state
+ *   The state of the form.
+ * 
+ * @return
+ *   The validated element.
+ */
 function _term_reference_tree_widget_validate(&$element, &$form_state) {
   #dsm($element, '_term_reference_tree_widget_validate');
   $children = element_children($element);
@@ -226,9 +306,6 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
     }
   }
   
-  
-  # TODO:  If form fails validation, for some reason this reverts to the normal
-  # term reference widget.
 	if ($element['#required'] && count($value) == 0) {
     form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
   }
@@ -239,12 +316,25 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
   return $element;
 }
 
+/*
 function _term_reference_tree_form_value($in) {
   $out = array();
   foreach($in as $val) {
   }
 }
+*/
 
+/**
+ * Return an array of options.
+ * 
+ * This function converts a list of taxonomy terms to a key/value list of options.
+ * 
+ * @param $terms
+ *   An array of taxonomy term IDs.
+ * 
+ * @return
+ *   A key/value array of taxonomy terms (name => id)
+ */
 function _term_reference_tree_get_options($terms) {
   $options = array();
   
@@ -256,6 +346,20 @@ function _term_reference_tree_get_options($terms) {
   return $options;
 }
 
+/**
+ * Render the term reference tree element.
+ * 
+ * This function renders the term reference tree element to its #markup
+ * parameter.
+ * 
+ * @param $element
+ *   The element to be rendered.
+ * @param $form_state
+ *   The form state.
+ * 
+ * @return
+ *   The rendered element.
+ */
 function _term_reference_tree_render($element, $form_state) {
   #dsm($element, '_term_reference_tree_render');
   #dsm($form_state, '_term_ref form state');
