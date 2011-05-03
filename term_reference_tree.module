@@ -421,7 +421,11 @@ function _term_reference_tree_render($element, $form_state) {
       $e['#suffix'] = "</li></ul>";
     } else {
       if($term->depth > $next_depth) {
-        $e['#suffix'] = "</li></ul></li>";
+        $suffix = '</li>';
+        for ($i=$next_depth; $term->depth > $i; $i++) {
+          $suffix .= '</ul></li>';
+        }
+        $e['#suffix'] = $suffix;
       } elseif($term->depth < $next_depth) {
         $e['#suffix'] = "";
       } else {
