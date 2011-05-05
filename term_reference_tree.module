@@ -68,6 +68,16 @@ function term_reference_tree_element_info() {
       '#theme' => array('radio_tree'),
       //'#theme_wrappers' => array('form_element'),
       '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
+    'checkbox_tree_level' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_level'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
+    'radio_tree_level' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_level'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
     ),    
   );
   
@@ -85,6 +95,12 @@ function term_reference_tree_theme() {
     'radio_tree' => array (
       'render element' => 'element',
     ),
+    'checkbox_tree_level' => array(
+      'render element' => 'element',
+    ),
+    'radio_tree_level' => array(
+      'render element' => 'element',
+    ),    
   );
 }
 
@@ -178,6 +194,36 @@ function theme_radio_tree($variables) {
   return theme_checkbox_tree($variables);
 }
 
+function theme_checkbox_tree_level($variables) {
+  $element = $varaibles['element'];
+}
+
+/**
+ * This function returns a taxonomy term hierarchy in a nested array.
+ *
+ * @param $tid
+ *   The ID of the root term.
+ * @param $vid
+ *   The vocabulary ID to restrict the child search.
+ *
+ * @return
+ *   A nested array of the term's child objects.  
+ */
+function _term_reference_tree_get_term_hierarchy($tid, $vid) {
+  #dsm("Term: $tid / Voc: $vid");
+  $terms = taxonomy_get_children($tid, $vid);
+
+  foreach($terms as &$term) {
+    #dsm($term);
+    $children = _term_reference_tree_get_term_hierarchy($term['tid'], $vid);
+    if(is_array($children)) {
+      $term['children'] = $children;
+    }
+  }
+
+  return $terms;
+}
+
 /**
  * Implements hook_widget_field_form().
  */
@@ -186,6 +232,9 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $terms = taxonomy_get_tree($voc->vid, $field['settings']['allowed_values'][0]['parent']);
   $path = drupal_get_path('module', 'term_reference_tree');
   $value_key = key($field['columns']);
+
+  $treetest = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid);
+  #dsm($treetest);
   
   $required = $element['#required'];
   if($field['cardinality'] == 1 && !$required) {
@@ -212,10 +261,12 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   foreach($items as $item) {
     $key = $item[$value_key];
     if(isset($options[$key])) {
-      if($key === 0) 
+      if($key === 0) {
         $default_value[$key] = '0';
-      else
+      }
+      else {
         $default_value[$key] = $key;
+      }
     }
   }
   
@@ -274,7 +325,8 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
         array_push($value, array($element['#value_key'] => $child['#value']));
       } 
     }
-  } else {
+  }
+  else {
     // If it's a tree of radio buttons, they all have the same value, so we can just
     // grab the value of the first one.
     if(is_array($children) && count($children) > 0) {
@@ -350,7 +402,8 @@ function _term_reference_tree_render($element, $form_state) {
     if(count($terms) > 0) {
       $next_term = reset($terms);
       $next_depth = $next_term->depth;
-    } else {
+    }
+    else {
       $last_element = true;
     }
     
@@ -378,7 +431,8 @@ function _term_reference_tree_render($element, $form_state) {
         $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
         $e['#parents'] = $element['#parents'];
       }
-    } else {
+    }
+    else {
       $e = array(
         '#markup' => "<div class='parent-term'>{$term->name}</div>",
       );
@@ -394,41 +448,49 @@ function _term_reference_tree_render($element, $form_state) {
   
       if($has_children) {
         $e['#prefix'] .= "<div class='term-reference-tree-button'></div>";
-      } else {
+      }
+      else {
         $e['#prefix'] .= "<div class='no-term-reference-tree-button'></div>";
       }
-    } else {
+    }
+    else {
       $expand_class = '';
       if($has_children && $element['#leaves_only'])
         $expand_class = " class='expandbutton'";
         
       if($term->depth > $prev_depth) {
         $e['#prefix'] = "<ul><li data-depth='{$term->depth}'$expand_class>";
-      } elseif($term->depth < $prev_depth) {
+      }
+      elseif($term->depth < $prev_depth) {
         $e['#prefix'] = "<li data-depth='{$term->depth}'$expand_class>";
-      } else {
+      }
+      else {
         $e['#prefix'] = "<li data-depth='{$term->depth}'$expand_class>";
       }
       
       if($has_children) {
         $e['#prefix'] .= "<div class='term-reference-tree-button'></div>";
-      } else {
+      }
+      else {
         $e['#prefix'] .= "<div class='no-term-reference-tree-button'></div>";
       }
     }
     
     if($last_element) {
       $e['#suffix'] = "</li></ul>";
-    } else {
+    }
+    else {
       if($term->depth > $next_depth) {
         $suffix = '</li>';
         for ($i=$next_depth; $term->depth > $i; $i++) {
           $suffix .= '</ul></li>';
         }
         $e['#suffix'] = $suffix;
-      } elseif($term->depth < $next_depth) {
+      }
+      elseif($term->depth < $next_depth) {
         $e['#suffix'] = "";
-      } else {
+      }
+      else {
         $e['#suffix'] = "</li>";
       }
     }
