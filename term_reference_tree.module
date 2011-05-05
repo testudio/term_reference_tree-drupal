@@ -14,6 +14,7 @@ function term_reference_tree_field_widget_info() {
       'settings' => array(
         'start_minimized' => 0,
         'leaves_only' => 0,
+        'filter_view' => '',
       ),
     ),
   );
@@ -43,6 +44,33 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['leaves_only'],
       '#return_value' => 1,
     );
+
+    if(module_exists('views')) {
+      $views = views_get_all_views();
+      $options = array('' => 'none');
+      
+      foreach($views as $name => $view) {
+        if($view->base_table == 'taxonomy_term_data') {
+          foreach($view->display as $display) {
+            $options["$name:{$display->id}"] = "{$view->human_name}: {$display->display_title}";
+          }
+        }
+      }
+
+      $form['filter_view'] = array(
+        '#type' => 'select',
+        '#title' => 'Filter by view',
+        '#description' => t("Filter the available options based on whether they appear in the selected view."),
+        '#default_value' => $settings['filter_view'],
+        '#options' => $options,
+      );
+    }
+    else {
+      $form['filter_view'] = array(
+        '#type' => 'hidden',
+        '#value' => $settings['filter_view'],
+      );
+    }   
   }
   
   return $form;
@@ -254,8 +282,8 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   //$properties = _options_properties($type, $multiple, $required, $has_value);
   
   $properties = array();
-  $options = _term_reference_tree_get_options($terms);
   $settings = $instance['widget']['settings'];
+  $options = _term_reference_tree_get_options($terms, $settings['filter_view']);
   
   $default_value = array();
   foreach($items as $item) {
@@ -285,6 +313,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#max_choices'] = $field['cardinality'];
       $element['#start_minimized'] = $settings['start_minimized'];
       $element['#leaves_only'] = $settings['leaves_only'];
+      $element['#filter_view'] = $settings['filter_view'];
 
       $value = (is_array($element['#value'])) ? $element['#value'] : array();
       break;
@@ -356,12 +385,61 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
  * @return
  *   A key/value array of taxonomy terms (name => id)
  */
-function _term_reference_tree_get_options($terms) {
+function _term_reference_tree_get_options($terms, $filter) {
   $options = array();
+  $viewname = "";
+  $displayname = "";
+  $result = array();
+  $allowed = array();
+
+  $parent_included = array();
+  
+  if(module_exists('views') && $filter != '') {
+    list($viewname, $displayname) = explode(":", $filter);
+    $view = views_get_view($viewname);
+    $view->execute();
+    foreach($view->result as $item) {
+      $allowed[$item->tid] = true;
+    }
+  }
   
   if(is_array($terms) && count($terms) > 0) {
     foreach($terms as $term) {
-      $options[$term->tid] = $term->name;
+      if($viewname == '') {
+        $options[$term->tid] = $term->name;
+      }
+      else {
+      }
+    }
+  }
+  return $options;
+}
+
+function _term_reference_tree_filter_terms($terms, $filter) {
+  $options = array();
+  $viewname = "";
+  $displayname = "";
+  $result = array();
+  $allowed = array();
+
+  $parent_included = array();
+
+  if(module_exists('views') && $filter != '') {
+    list($viewname, $displayname) = explode(":", $filter);
+    $view = views_get_view($viewname);
+    $view->execute();
+    foreach($view->result as $item) {
+      $allowed[$item->tid] = true;
+    }
+  }
+
+  if(is_array($terms) && count($terms) > 0) {
+    foreach($terms as $term) {
+      if($viewname == '') {
+        $options[$term->tid] = $term->name;
+      }
+      else {
+      }
     }
   }
   return $options;
