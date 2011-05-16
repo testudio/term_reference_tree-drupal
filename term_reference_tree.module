@@ -128,7 +128,13 @@ function term_reference_tree_theme() {
     ),
     'radio_tree_level' => array(
       'render element' => 'element',
-    ),    
+    ),
+    'checkbox_tree_element' => array(
+      'render element' => 'element',
+    ),
+    'radio_tree_element' => array(
+      'render element' => 'element',
+    ),  
   );
 }
 
@@ -237,32 +243,42 @@ function theme_checkbox_tree_level($variables) {
  * @return
  *   A nested array of the term's child objects.  
  */
-function _term_reference_tree_get_term_hierarchy($tid, $vid) {
-  #dsm("Term: $tid / Voc: $vid");
-  $terms = taxonomy_get_children($tid, $vid);
+function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter) {
+  if($tid == 0) {
+    $terms = taxonomy_get_tree($vid, 0, 1);
+  }
+  else {
+    $terms = taxonomy_get_children($tid, $vid);
+  }
 
+  $result = array();
+  
   foreach($terms as &$term) {
-    #dsm($term);
-    $children = _term_reference_tree_get_term_hierarchy($term['tid'], $vid);
-    if(is_array($children)) {
-      $term['children'] = $children;
+    if($filter == '' || array_key_exists($term->tid, $allowed)) {
+      $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter);
+      if(is_array($children)) {
+        $term->children = $children;
+      }
+      array_push($result, $term);
     }
   }
 
-  return $terms;
+  return $result;
 }
 
 /**
  * Implements hook_widget_field_form().
  */
 function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $settings = $instance['widget']['settings'];
   $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
   $terms = taxonomy_get_tree($voc->vid, $field['settings']['allowed_values'][0]['parent']);
   $path = drupal_get_path('module', 'term_reference_tree');
   $value_key = key($field['columns']);
 
-  $treetest = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid);
-  #dsm($treetest);
+  $allowed = _term_reference_tree_get_allowed_values($settings['filter_view']);
+  $treetest = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid, $allowed, $settings['filter_view']);
+  dsm($treetest);
   
   $required = $element['#required'];
   if($field['cardinality'] == 1 && !$required) {
@@ -282,7 +298,6 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   //$properties = _options_properties($type, $multiple, $required, $has_value);
   
   $properties = array();
-  $settings = $instance['widget']['settings'];
   $options = _term_reference_tree_get_options($terms, $settings['filter_view']);
   
   $default_value = array();
@@ -413,6 +428,23 @@ function _term_reference_tree_get_options($terms, $filter) {
     }
   }
   return $options;
+}
+
+function _term_reference_tree_get_allowed_values($filter) {
+  $viewname = "";
+  $displayname = "";
+  $allowed = array();
+
+  if(module_exists('views') && $filter != '') {
+    list($viewname, $displayname) = explode(":", $filter);
+    $view = views_get_view($viewname);
+    $view->execute();
+    foreach($view->result as $item) {
+      $allowed[$item->tid] = true;
+    }
+  }
+
+  return $allowed;
 }
 
 function _term_reference_tree_filter_terms($terms, $filter) {
