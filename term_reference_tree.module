@@ -209,7 +209,7 @@ function theme_checkbox_tree($variables) {
   if (isset($element['#id'])) {
     $attributes['id'] = $element['#id'];
   }
-  $attributes['class'][] = 'form-checkboxes';
+  $attributes['class'][] = 'term-reference-tree';
   
   if(form_get_error($element)) {
     $attributes['class'][] = 'error';
@@ -217,6 +217,10 @@ function theme_checkbox_tree($variables) {
   
   if(!empty($element['#required'])) {
     $attributes['class'][] = 'required';
+  }
+
+  if(!empty($element['#max_choices'])) {
+    $attributes['data-max-choices'] = $element['#max_choices'];
   }
   
   if (!empty($element['#attributes']['class'])) {
@@ -287,7 +291,7 @@ function theme_checkbox_tree_level($variables) {
   $output .= "</ul>";
   */
 
-  $output = "<ul class='term-reference-tree$sm' data-max-choices='$max_choices'>";
+  $output = "<ul class='term-reference-tree-level$sm' data-max-choices='$max_choices'>";
   $children = element_children($element);
   foreach($children as $child) {
     $output .= "<li>";
@@ -304,12 +308,13 @@ function theme_checkbox_tree_item($variables) {
   $element = $variables['element'];
   #dsm('theme_checkbox_tree_item');
   $children = element_children($element);
-
+  $output = "";
+  
   if(count($children) > 1) {
-    $output = "<div class='term-reference-tree-button'></div>";
+    $output .= "<div class='term-reference-tree-button'></div>";
   }
-  else {
-    $output = "<div class='no-term-reference-tree-button'></div>";
+  elseif(!$element['#leaves_only']) {
+    $output .= "<div class='no-term-reference-tree-button'></div>";
   }
 
   foreach($children as $child) {
@@ -385,8 +390,11 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   //$properties = _options_properties($type, $multiple, $required, $has_value);
   
   $properties = array();
-  $options = _term_reference_tree_get_options($terms, $settings['filter_view']);
-  
+  #$options = _term_reference_tree_get_options($terms, $settings['filter_view']);
+  $options = _term_reference_tree_get_options($terms, $allowed, $settings['filter_view']);
+  #dsm($items, 'items');
+  #dsm($options, 'options');
+  #dsm($allowed, 'allowed');
   $default_value = array();
   foreach($items as $item) {
     $key = $item[$value_key];
@@ -399,6 +407,8 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       }
     }
   }
+
+  #dsm($default_value, 'default');
   
   if(!array_key_exists('#value', $element))
     $element['#value'] = array();
@@ -448,8 +458,8 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
 function _term_reference_tree_widget_validate(&$element, &$form_state) {
   //$children = element_children($element);
   $items = _term_reference_tree_flatten($element);
-  dsm($element);
-  dsm($items);
+  #dsm($element);
+  #dsm($items);
   $value = array();
   
   if($element['#type'] == 'checkbox_tree') {    
@@ -477,6 +487,8 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
   if ($element['#required'] && count($value) == 0) {
     form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
   }
+
+  #dsm($value, 'value');
   
   form_set_value($element, $value, $form_state);
   return $element;
@@ -491,7 +503,7 @@ function _term_reference_tree_flatten($element) {
   $children = element_children($element);
   foreach($children as $c) {
     $child = $element[$c];
-    if($child['#type'] == 'radio' || $child['#type'] == 'checkbox') {
+    if(array_key_exists('#type', $child) && ($child['#type'] == 'radio' || $child['#type'] == 'checkbox')) {
       $output[] = $child;
     }
     else {
@@ -512,7 +524,8 @@ function _term_reference_tree_flatten($element) {
  * @return
  *   A key/value array of taxonomy terms (name => id)
  */
-function _term_reference_tree_get_options($terms, $filter) {
+function _term_reference_tree_get_options(&$terms, &$allowed, $filter) {
+  /*
   $options = array();
   $viewname = "";
   $displayname = "";
@@ -536,6 +549,19 @@ function _term_reference_tree_get_options($terms, $filter) {
         $options[$term->tid] = $term->name;
       }
       else {
+      }
+    }
+  }
+  return $options;
+  */
+
+  $options = array();
+
+  if(is_array($terms) && count($terms) > 0) {
+    foreach($terms as $term) {
+      if(!$filter || $allowed[$term->tid]) {
+        $options[$term->tid] = $term->name;
+        $options += _term_reference_tree_get_options($term->children, $allowed, $filter);
       }
     }
   }
@@ -602,9 +628,10 @@ function _term_reference_tree_build($element, $form_state) {
     #$element[] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices);
   #}
 
+
+  #dsm($value, 'v');
   #dsm($element);
-  #dsm($max_choices);
-  
+    
   $tree = new stdClass;
   $tree->children = $terms;
   $element[] = _term_reference_tree_build_level($element, $tree, $form_state, $value, $max_choices);
@@ -615,15 +642,22 @@ function _term_reference_tree_build($element, $form_state) {
 }
 
 function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices) {
+  #dsm($value);
   $start_minimized = FALSE;
   if(array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
   }
 
+  $leaves_only = FALSE;
+  if(array_key_exists('#leaves_only', $element)) {
+    $leaves_only = $element['#leaves_only'];
+  }
+  
   $container = array(
     '#type' => 'checkbox_tree_item',
     '#max_choices' => $max_choices,
     '#start_minimized' => $start_minimized,
+    '#leaves_only' => $leaves_only,
   );
 
   if(!$element['#leaves_only'] || count($term->children) == 0) {
@@ -663,11 +697,17 @@ function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$val
   if(array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
   }
+
+  $leaves_only = FALSE;
+  if(array_key_exists('#leaves_only', $element)) {
+    $leaves_only = $element['#leaves_only'];
+  }
   
   $container = array(
     '#type' => 'checkbox_tree_level',
     '#max_choices' => $max_choices,
     '#start_minimized' => $start_minimized,
+    '#leaves_only' => $leaves_only,
   );
 
   /*

@@ -15,10 +15,10 @@
       $(this).find('input[type=checkbox]').change(function() {
         checkMaxChoices(tree);
       });
-			
-			if($(this).hasClass('term-reference-tree-start-minimized')) {
-				$(this).find('.term-reference-tree-button').addClass('term-reference-tree-collapsed').siblings('ul').hide();
-			}
+      
+      if($(this).hasClass('term-reference-tree-start-minimized')) {
+        $(this).find('.term-reference-tree-button').addClass('term-reference-tree-collapsed').siblings('ul').hide();
+      }
     });
   });
   
