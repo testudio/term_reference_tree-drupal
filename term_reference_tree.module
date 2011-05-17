@@ -406,6 +406,11 @@ function _term_reference_tree_flatten($element) {
  * 
  * @param $terms
  *   An array of taxonomy term IDs.
+ * @param $allowed
+ *   An array containing the terms allowed by the filter view
+ * @param $filter
+ *   A string defining the view to filter by (only used to detect whether view
+ *   filtering is enabled
  * 
  * @return
  *   A key/value array of taxonomy terms (name => id)
@@ -424,6 +429,15 @@ function _term_reference_tree_get_options(&$terms, &$allowed, $filter) {
   return $options;
 }
 
+/**
+ * Returns an array of allowed values defined by the given view.
+ *
+ * @param $filter
+ *   A view, in the format VIEWNAME:DISPLAYNAME
+ *
+ * @return
+ *   An array of term IDs (tid => true) returned by the view.
+ */
 function _term_reference_tree_get_allowed_values($filter) {
   $viewname = "";
   $displayname = "";
@@ -432,45 +446,30 @@ function _term_reference_tree_get_allowed_values($filter) {
   if(module_exists('views') && $filter != '') {
     list($viewname, $displayname) = explode(":", $filter);
     $view = views_get_view($viewname);
-    $view->execute();
-    foreach($view->result as $item) {
-      $allowed[$item->tid] = true;
+    if($view->access($displayname)) {
+      $view->execute_display($displayname);
+      foreach($view->result as $item) {
+        $allowed[$item->tid] = true;
+      }
+    } else {
+      drupal_set_message("Cannot access view for term reference tree widget.", 'warning');
     }
   }
 
   return $allowed;
 }
 
-function _term_reference_tree_filter_terms($terms, $filter) {
-  $options = array();
-  $viewname = "";
-  $displayname = "";
-  $result = array();
-  $allowed = array();
-
-  $parent_included = array();
-
-  if(module_exists('views') && $filter != '') {
-    list($viewname, $displayname) = explode(":", $filter);
-    $view = views_get_view($viewname);
-    $view->execute();
-    foreach($view->result as $item) {
-      $allowed[$item->tid] = true;
-    }
-  }
-
-  if(is_array($terms) && count($terms) > 0) {
-    foreach($terms as $term) {
-      if($viewname == '') {
-        $options[$term->tid] = $term->name;
-      }
-      else {
-      }
-    }
-  }
-  return $options;
-}
-
+/**
+ * Builds the term reference tree widget element.
+ *
+ * @param $element
+ *   The term reference tree element.
+ * @param $form_state
+ *   The form state
+ *
+ * @return
+ *   The term reference tree element, including child tags.
+ */
 function _term_reference_tree_build($element, $form_state) {
   $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
   $terms = !empty($element['#options_tree']) ? $element['#options_tree'] : array();
@@ -486,6 +485,30 @@ function _term_reference_tree_build($element, $form_state) {
   return $element;
 }
 
+/**
+ * Builds a single item in the term reference tree widget.
+ *
+ * This function returns an element with a checkbox for a single taxonomy term.
+ * If that term has children, it appends checkbox_tree_level element that
+ * contains the children.  It is meant to be called recursively when the widget
+ * is built.
+ *
+ * @param $element
+ *   The main checkbox_tree element.
+ * @param $term
+ *   A taxonomy term object.  $term->children should be an array of the term
+ *   objects that are that term's children.
+ * @param $form_state
+ *   The form state.
+ * @param $value
+ *   The value of the element.
+ * @param $max_choices
+ *   The maximum number of allowed selections.
+ *
+ * @return
+ *   A completed checkbox_tree_item element, which contains a checkbox and
+ *   possibly a checkbox_tree_level element as well.
+ */
 function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices) {
   $start_minimized = FALSE;
   if(array_key_exists('#start_minimized', $element)) {
@@ -535,6 +558,27 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
   return $container;
 }
 
+/**
+ * Builds a level in the term reference tree widget.
+ *
+ * This function returns an element that has a number of checkbox_tree_item elements
+ * as children.  It is meant to be called recursively when the widget is built.
+ *
+ * @param $element
+ *   The main checkbox_tree element.
+ * @param $term
+ *   A taxonomy term object.  $term->children should be an array of the term
+ *   objects that are that term's children.
+ * @param $form_state
+ *   The form state.
+ * @param $value
+ *   The value of the element.
+ * @param $max_choices
+ *   The maximum number of allowed selections.
+ *
+ * @return
+ *   A completed checkbox_tree_level element.
+ */
 function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, $max_choices) {
   $start_minimized = FALSE;
   if(array_key_exists('#start_minimized', $element)) {
