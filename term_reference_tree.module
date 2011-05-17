@@ -106,7 +106,17 @@ function term_reference_tree_element_info() {
       '#input' => false,
       '#theme' => array('checkbox_tree_level'),
       '#pre_render' => array('form_pre_render_conditional_form_element'),
-    ),    
+    ),
+    'checkbox_tree_item' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_item'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
+    'radio_tree_item' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_item'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),   
   );
   
   return $types;
@@ -129,10 +139,10 @@ function term_reference_tree_theme() {
     'radio_tree_level' => array(
       'render element' => 'element',
     ),
-    'checkbox_tree_element' => array(
+    'checkbox_tree_item' => array(
       'render element' => 'element',
     ),
-    'radio_tree_element' => array(
+    'radio_tree_item' => array(
       'render element' => 'element',
     ),  
   );
@@ -156,6 +166,7 @@ function term_reference_tree_theme() {
 function term_reference_tree_process_checkbox_tree($element, $form_state) {
   //$element = _term_reference_tree_render($element, $form_state);
   $element = _term_reference_tree_build($element, $form_state);
+  #dsm($element);
   return $element;
 }
 
@@ -175,7 +186,7 @@ function term_reference_tree_process_checkbox_tree($element, $form_state) {
  *   The processed element.
  */
 function term_reference_tree_process_radio_tree($element, $form_state) {
-  $element = _term_reference_tree_render($element, $form_state);
+  $element = _term_reference_tree_build($element, $form_state);
   return $element;
 }
 
@@ -243,8 +254,16 @@ function theme_checkbox_tree_level($variables) {
   if(array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
     $sm = " term-reference-tree-start-minimized";
   }
+
   $max_choices = 0;
-  
+  if(array_key_exists('#max_choices', $element)) {
+    $max_choices = $element['#max_choices'];
+  }
+
+  #dsm('theme_checkbox_tree_level');
+  #dsm($element);
+
+  /*
   $output = "<ul class='term-reference-tree$sm' data-max-choices='$max_choices'>";
   #dsm("theme_checkbox_tree_level");
   #dsm($element, 'element');
@@ -266,11 +285,38 @@ function theme_checkbox_tree_level($variables) {
 
   $output .= "</li>";
   $output .= "</ul>";
+  */
+
+  $output = "<ul class='term-reference-tree$sm' data-max-choices='$max_choices'>";
+  $children = element_children($element);
+  foreach($children as $child) {
+    $output .= "<li>";
+    $output .= drupal_render($element[$child]);
+    $output .= "</li>";
+  }
+
+  $output .= "</ul>";
+
   return $output;
 }
 
-function theme_checkbox_tree_element($variables) {
+function theme_checkbox_tree_item($variables) {
   $element = $variables['element'];
+  #dsm('theme_checkbox_tree_item');
+  $children = element_children($element);
+
+  if(count($children) > 1) {
+    $output = "<div class='term-reference-tree-button'></div>";
+  }
+  else {
+    $output = "<div class='no-term-reference-tree-button'></div>";
+  }
+
+  foreach($children as $child) {
+    $output .= drupal_render($element[$child]);
+  }
+  
+  return $output;
 }
 
 /**
@@ -303,7 +349,7 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter)
       array_push($result, $term);
     }
   }
-
+  
   return $result;
 }
 
@@ -319,7 +365,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
 
   $allowed = _term_reference_tree_get_allowed_values($settings['filter_view']);
   $terms = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid, $allowed, $settings['filter_view']);
-  #dsm($treetest);
+  #dsm($terms);
   
   $required = $element['#required'];
   if($field['cardinality'] == 1 && !$required) {
@@ -400,12 +446,16 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
  *   The validated element.
  */
 function _term_reference_tree_widget_validate(&$element, &$form_state) {
-  $children = element_children($element);
+  //$children = element_children($element);
+  $items = _term_reference_tree_flatten($element);
+  dsm($element);
+  dsm($items);
   $value = array();
   
   if($element['#type'] == 'checkbox_tree') {    
-    foreach($children as $c) {
-      $child = $element[$c];
+    #foreach($children as $c) {
+      #$child = $element[$c];
+    foreach($items as $child) {
       if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
         array_push($value, array($element['#value_key'] => $child['#value']));
       } 
@@ -414,8 +464,10 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
   else {
     // If it's a tree of radio buttons, they all have the same value, so we can just
     // grab the value of the first one.
-    if(is_array($children) && count($children) > 0) {
-      $child = $element[reset($children)];
+    #if(is_array($children) && count($children) > 0) {
+      #$child = $element[reset($children)];
+    if(count($items) > 0) {
+      $child = reset($items);
       if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
         array_push($value, array($element['#value_key'] => $child['#value']));
       }       
@@ -428,6 +480,25 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
   
   form_set_value($element, $value, $form_state);
   return $element;
+}
+
+/**
+ * Recursively go through the option tree and return a flat array of
+ * options
+ */
+function _term_reference_tree_flatten($element) {
+  $output = array();
+  $children = element_children($element);
+  foreach($children as $c) {
+    $child = $element[$c];
+    if($child['#type'] == 'radio' || $child['#type'] == 'checkbox') {
+      $output[] = $child;
+    }
+    else {
+      $output = array_merge($output, _term_reference_tree_flatten($child));
+    }
+  }
+  return $output;
 }
 
 /**
@@ -527,20 +598,79 @@ function _term_reference_tree_build($element, $form_state) {
     $element['#tree'] = TRUE;
   
   #dsm($terms);
-  foreach($terms as $term) {  
-    $element[] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices);
-  }
+  #foreach($terms as $term) {  
+    #$element[] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices);
+  #}
+
   #dsm($element);
+  #dsm($max_choices);
   
+  $tree = new stdClass;
+  $tree->children = $terms;
+  $element[] = _term_reference_tree_build_level($element, $tree, $form_state, $value, $max_choices);
+
+
+  #dsm($element);
   return $element;
 }
 
-function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, &$max_choices) {
-  #error_log("Level: " . $term->tid);
+function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices) {
+  $start_minimized = FALSE;
+  if(array_key_exists('#start_minimized', $element)) {
+    $start_minimized = $element['#start_minimized'];
+  }
+
   $container = array(
-    '#type' => 'checkbox_tree_level',
+    '#type' => 'checkbox_tree_item',
+    '#max_choices' => $max_choices,
+    '#start_minimized' => $start_minimized,
   );
 
+  if(!$element['#leaves_only'] || count($term->children) == 0) {
+    $e = array(
+      '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
+      '#title' => $term->name,
+      '#return_value' => $term->tid,
+      '#default_value' => isset($value[$term->tid]) ? $term->tid : NULL,
+      '#attributes' => isset($element['#attributes']) ? $element['#attributes'] : NULL,
+      '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
+    );
+
+    if($e['#type'] == 'radio') {
+      $parents_for_id = array_merge($element['#parents'], array($term->tid));
+      $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
+      $e['#parents'] = $element['#parents'];
+    }
+  }
+  else {
+    $e = array(
+      '#markup' => "<div class='parent-term'>{$term->name}</div>",
+    );
+  }
+
+  $container[] = $e;
+
+  if(property_exists($term, 'children') && count($term->children) > 0) {
+    $container[] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices);
+  }
+
+  return $container;
+}
+
+function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, $max_choices) {
+  #error_log("Level: " . $term->tid);
+  $start_minimized = FALSE;
+  if(array_key_exists('#start_minimized', $element)) {
+    $start_minimized = $element['#start_minimized'];
+  }
+  
+  $container = array(
+    '#type' => 'checkbox_tree_level',
+    '#max_choices' => $max_choices,
+    '#start_minimized' => $start_minimized,
+  );
+
+  /*
   if(!$element['#leaves_only'] || !$has_children) {
     $e = array(
       '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
@@ -568,7 +698,12 @@ function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$val
   foreach($term->children as $t) {
     $container[] = _term_reference_tree_build_level($element, $t, $form_state, $value, $max_choices);
   }
+  */
 
+  foreach($term->children as $t) {
+    $container[] = _term_reference_tree_build_item($element, $t, $form_state, $value, $max_choices);
+  }
+  
   return $container;
 }
 
