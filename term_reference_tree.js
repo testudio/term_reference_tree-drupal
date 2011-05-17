@@ -17,7 +17,14 @@
       });
       
       if($(this).hasClass('term-reference-tree-start-minimized')) {
-        $(this).find('.term-reference-tree-button').addClass('term-reference-tree-collapsed').siblings('ul').hide();
+        $(this).find('.term-reference-tree-button').each(function() {
+          // If no sibling <ul>'s contain a checked checkbox, add the
+          // term-reference-tree-collapsed class and hide the <ul>.
+          if($(this).siblings('ul').has('input[type=checkbox]:checked').size() == 0) {
+            $(this).addClass('term-reference-tree-collapsed');
+            $(this).siblings('ul').hide();
+          }
+        });
       }
     });
   });
