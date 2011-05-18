@@ -57,7 +57,13 @@
 }
 
 .form-type-checkbox-tree .error {
-	background-image: none;
-	border: 2px solid red;
-	padding: 3px;
+  background-image: none;
+  border: 2px solid red;
+  padding: 3px;
+}
+
+.region-content ul.term-reference-tree-level,
+.term-reference-tree-level
+{
+  padding: 0;
 }
