@@ -446,13 +446,17 @@ function _term_reference_tree_get_allowed_values($filter) {
   if(module_exists('views') && $filter != '') {
     list($viewname, $displayname) = explode(":", $filter);
     $view = views_get_view($viewname);
-    if($view->access($displayname)) {
-      $view->execute_display($displayname);
-      foreach($view->result as $item) {
-        $allowed[$item->tid] = true;
+    if(is_object($view)) {
+      if($view->access($displayname)) {
+        $view->execute_display($displayname);
+        foreach($view->result as $item) {
+          $allowed[$item->tid] = true;
+        }
+      } else {
+        drupal_set_message("Cannot access view for term reference tree widget.", 'warning');
       }
     } else {
-      drupal_set_message("Cannot access view for term reference tree widget.", 'warning');
+      drupal_set_message("Term reference tree: no view named '$viewname'", 'warning');
     }
   }
 
