@@ -97,6 +97,11 @@ function term_reference_tree_element_info() {
       '#theme' => array('checkbox_tree_item'),
       '#pre_render' => array('form_pre_render_conditional_form_element'),
     ),
+    'checkbox_tree_label' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_label'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
   );
   
   return $types;
@@ -114,6 +119,9 @@ function term_reference_tree_theme() {
       'render element' => 'element',
     ),
     'checkbox_tree_item' => array(
+      'render element' => 'element',
+    ),
+    'checkbox_tree_label' => array(
       'render element' => 'element',
     ),
   );
@@ -208,13 +216,18 @@ function theme_checkbox_tree_level($variables) {
   return $output;
 }
 
+/**
+ * This function prints a single item in the tree, followed by that item's children
+ * (which may be another checkbox_tree_level).
+ */
 function theme_checkbox_tree_item($variables) {
   $element = $variables['element'];
   $children = element_children($element);
   $output = "";
   
-  if(count($children) > 1) {
+  if(is_array($children) && count($children) > 1) {
     $output .= "<div class='term-reference-tree-button'></div>";
+
   }
   elseif(!$element['#leaves_only']) {
     $output .= "<div class='no-term-reference-tree-button'></div>";
@@ -224,6 +237,15 @@ function theme_checkbox_tree_item($variables) {
     $output .= drupal_render($element[$child]);
   }
   
+  return $output;
+}
+
+/**
+ * This function prints a label that cannot be selected.
+ */
+function theme_checkbox_tree_label($variables) {
+  $element = $variables['element'];
+  $output = "<div class='parent-term'>" . check_plain($element['#value']) . "</div>";
   return $output;
 }
 
@@ -374,8 +396,6 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
     form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
   }
 
-  #dsm($value, 'value');
-  
   form_set_value($element, $value, $form_state);
   return $element;
 }
@@ -529,6 +549,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
     '#max_choices' => $max_choices,
     '#start_minimized' => $start_minimized,
     '#leaves_only' => $leaves_only,
+    '#term_name' => $term->name,
   );
 
   if(!$element['#leaves_only'] || count($term->children) == 0) {
@@ -546,14 +567,17 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
       $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
       $e['#parents'] = $element['#parents'];
     }
+
   }
   else {
     $e = array(
-      '#markup' => "<div class='parent-term'>{$term->name}</div>",
+      '#type' => 'checkbox_tree_label',
+      '#value' => $term->name,
     );
   }
 
   $container[] = $e;
+  
 
   if(property_exists($term, 'children') && count($term->children) > 0) {
     $container[] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices);
