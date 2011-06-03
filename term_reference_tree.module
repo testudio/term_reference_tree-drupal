@@ -141,8 +141,7 @@ function term_reference_tree_theme() {
  *   The processed element.
  */
 function term_reference_tree_process_checkbox_tree($element, $form_state) {
-  $element = _term_reference_tree_build($element, $form_state);
-  return $element;
+  return _term_reference_tree_build($element, $form_state);
 }
 
 /**
@@ -260,27 +259,45 @@ function theme_checkbox_tree_label($variables) {
  * @return
  *   A nested array of the term's child objects.  
  */
-function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter) {
-  if($tid == 0) {
-    $terms = taxonomy_get_tree($vid, 0, 1);
-  }
-  else {
-    $terms = taxonomy_get_children($tid, $vid);
-  }
+function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter, $label) {
+  $terms = _term_reference_tree_get_children($tid, $vid);
 
   $result = array();
   
   foreach($terms as &$term) {
     if($filter == '' || array_key_exists($term->tid, $allowed)) {
-      $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter);
+      $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
       if(is_array($children)) {
         $term->children = $children;
       }
+      $term->TEST = $label;
       array_push($result, $term);
     }
   }
   
   return $result;
+}
+
+/**
+ * This function is like taxonomy_get_children, except it doesn't load the entire term.
+ *
+ * @param $tid
+ *   The ID of the term whose children you want to get.
+ * @param $vid
+ *   The vocabulary ID.
+ *
+ * @return
+ *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
+ */
+function _term_reference_tree_get_children($tid, $vid) {
+  $q = db_query("select d.tid, d.name from {taxonomy_term_data} d, {taxonomy_term_hierarchy} h where d.vid = :vid and d.tid = h.tid and h.parent = :tid", array(':vid' => $vid, ':tid'  => $tid));
+  $terms = array();
+  
+  foreach($q as $term) {
+    $terms[] = (object) $term;
+  }
+
+  return $terms;
 }
 
 /**
@@ -293,7 +310,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $value_key = key($field['columns']);
 
   $allowed = _term_reference_tree_get_allowed_values($settings['filter_view']);
-  $terms = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid, $allowed, $settings['filter_view']);
+  $terms = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid, $allowed, $settings['filter_view'], $instance['label']);
   
   $required = $element['#required'];
   if($field['cardinality'] == 1 && !$required) {
@@ -313,6 +330,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $properties = array();
   $options = _term_reference_tree_get_options($terms, $allowed, $settings['filter_view']);
   $default_value = array();
+
   foreach($items as $item) {
     $key = $item[$value_key];
     if(isset($options[$key])) {
@@ -351,7 +369,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
     '#element_validate' => array('_term_reference_tree_widget_validate'),
     '#properties' => $properties,
   );
-  
+
   return $element;
 }
 
@@ -567,7 +585,6 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
       $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
       $e['#parents'] = $element['#parents'];
     }
-
   }
   else {
     $e = array(
