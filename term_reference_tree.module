@@ -45,6 +45,15 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       '#return_value' => 1,
     );
 
+    $form['select_parents'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Select parents automatically'),
+      '#description' => t("When turned on, this option causes the widget to automatically select the ancestors of all selected items. In Leaves Only mode, the parents will be added invisibly to the selected value.  <em>This option is only valid if an unlimited number of values can be selected.</em>"),
+      '#default_value' => $settings['select_parents'],
+      '#element_validate' => array('_term_reference_tree_select_parents_validate'),
+      '#return_value' => 1,
+    );
+
     if(module_exists('views')) {
       $views = views_get_all_views();
       $options = array('' => 'none');
@@ -72,8 +81,19 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       );
     }   
   }
-  
+
   return $form;
+}
+
+/**
+ * Makes sure that cardinality is unlimited if auto-select parents is enabled.
+ */
+function _term_reference_tree_select_parents_validate($element, &$form_state) {
+  if($form_state['values']['instance']['widget']['settings']['select_parents'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
+    // This is pretty wonky syntax for the field name in form_set_error, but it's
+    // correct.
+    form_set_error('field][cardinality', t('You must select an Unlimited number of values if Select Parents Automatically is enabled.'));
+  }
 }
 
 /**
@@ -359,6 +379,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#start_minimized'] = $settings['start_minimized'];
       $element['#leaves_only'] = $settings['leaves_only'];
       $element['#filter_view'] = $settings['filter_view'];
+      $element['#select_parents'] = $settings['select_parents'];
 
       $value = (is_array($element['#value'])) ? $element['#value'] : array();
       break;
@@ -396,6 +417,14 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
     foreach($items as $child) {
       if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
         array_push($value, array($element['#value_key'] => $child['#value']));
+
+        // If the element is leaves only and select parents is on, then automatically
+        // add all the parents of each selected value.
+        if($element['#select_parents'] && $element['#leaves_only']) {
+          foreach($element['#parent_values'] as $parent_tid) {
+            array_push($value, array($element['#value_key'] => $parent_tid));
+          }
+        }
       } 
     }
   }
@@ -458,7 +487,7 @@ function _term_reference_tree_get_options(&$terms, &$allowed, $filter) {
 
   if(is_array($terms) && count($terms) > 0) {
     foreach($terms as $term) {
-      if(!$filter || $allowed[$term->tid]) {
+      if(!$filter || (is_array($allowed) && $allowed[$term->tid])) {
         $options[$term->tid] = $term->name;
         $options += _term_reference_tree_get_options($term->children, $allowed, $filter);
       }
@@ -516,6 +545,9 @@ function _term_reference_tree_build($element, $form_state) {
   $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
   $terms = !empty($element['#options_tree']) ? $element['#options_tree'] : array();
   $max_choices = !empty($element['#max_choices']) ? $element['#max_choices'] : 1;
+  if(array_key_exists('#select_parents', $element) && $element['#select_parents']) {
+    $element['#attributes']['class'][] = 'select-parents';
+  }
 
   if($max_choices != 1)
     $element['#tree'] = TRUE;
@@ -551,7 +583,7 @@ function _term_reference_tree_build($element, $form_state) {
  *   A completed checkbox_tree_item element, which contains a checkbox and
  *   possibly a checkbox_tree_level element as well.
  */
-function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices) {
+function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids) {
   $start_minimized = FALSE;
   if(array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
@@ -575,6 +607,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
       '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
       '#title' => $term->name,
       '#return_value' => $term->tid,
+      '#parent_values' => $parent_tids,
       '#default_value' => isset($value[$term->tid]) ? $term->tid : NULL,
       '#attributes' => isset($element['#attributes']) ? $element['#attributes'] : NULL,
       '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
@@ -597,7 +630,9 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
   
 
   if(property_exists($term, 'children') && count($term->children) > 0) {
-    $container[] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices);
+    $parents = $parent_tids;
+    $parents[] = $term->tid;
+    $container[] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices, $parents);
   }
 
   return $container;
@@ -624,7 +659,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
  * @return
  *   A completed checkbox_tree_level element.
  */
-function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, $max_choices) {
+function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids = array()) {
   $start_minimized = FALSE;
   if(array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
@@ -643,7 +678,7 @@ function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$val
   );
 
   foreach($term->children as $t) {
-    $container[] = _term_reference_tree_build_item($element, $t, $form_state, $value, $max_choices);
+    $container[] = _term_reference_tree_build_item($element, $t, $form_state, $value, $max_choices, $parent_tids);
   }
   
   return $container;

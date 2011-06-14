@@ -18,9 +18,9 @@
       // On page load, check whether the maximum number of choices is already selected.
       // If so, disable the other options.
       var tree = $(this);
-      checkMaxChoices(tree);
+      checkMaxChoices(tree, false);
       $(this).find('input[type=checkbox]').change(function() {
-        checkMaxChoices(tree);
+        checkMaxChoices(tree, $(this));
       });
 
       // On page load, check if the start minimized option is selected.  If so,
@@ -41,7 +41,7 @@
 
   // This helper function checks if the maximum number of choices is already selected.
   // If so, it disables all the other options.  If not, it enables them.
-  function checkMaxChoices(item) {
+  function checkMaxChoices(item, checkbox) {
     var maxChoices = item.attr('data-max-choices');
     var count = item.find(':checked').length;
     
@@ -49,6 +49,14 @@
       item.find('input[type=checkbox]:not(:checked)').attr('disabled', 'disabled').parent().addClass('disabled');
     } else {
       item.find('input[type=checkbox]').removeAttr('disabled').parent().removeClass('disabled');
+    }
+
+    if(checkbox) {
+      if(item.hasClass('select-parents')) {
+        if(checkbox.attr('checked')) {
+          checkbox.parents('ul.term-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').attr('checked', checkbox.attr('checked'));
+        }
+      }
     }
   }
 })(jQuery);
