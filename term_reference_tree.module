@@ -15,6 +15,7 @@ function term_reference_tree_field_widget_info() {
         'start_minimized' => 0,
         'leaves_only' => 0,
         'filter_view' => '',
+        'select_parents' => 0,
       ),
     ),
   );
@@ -412,7 +413,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
 function _term_reference_tree_widget_validate(&$element, &$form_state) {
   $items = _term_reference_tree_flatten($element);
   $value = array();
-  
+
   if($element['#max_choices'] != 1) {
     foreach($items as $child) {
       if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
@@ -421,8 +422,10 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
         // If the element is leaves only and select parents is on, then automatically
         // add all the parents of each selected value.
         if($element['#select_parents'] && $element['#leaves_only']) {
-          foreach($element['#parent_values'] as $parent_tid) {
-            array_push($value, array($element['#value_key'] => $parent_tid));
+          foreach($child['#parent_values'] as $parent_tid) {
+            if(!in_array(array($element['#value_key'] => $parent_tid), $value)) {
+              array_push($value, array($element['#value_key'] => $parent_tid));
+            }
           }
         }
       } 
