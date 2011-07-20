@@ -282,17 +282,31 @@ function theme_checkbox_tree_label($variables) {
  */
 function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter, $label) {
   $terms = _term_reference_tree_get_children($tid, $vid);
-
-  $result = array();
   
-  foreach($terms as &$term) {
-    if($filter == '' || array_key_exists($term->tid, $allowed)) {
-      $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
-      if(is_array($children)) {
-        $term->children = $children;
+  $result = array();
+
+  if($filter != '') {
+    foreach($allowed as $k => $v) {
+      if(array_key_exists($k, $terms)) {
+        $term =& $terms[$k];
+        $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
+        if(is_array($children)) {
+          $term->children = $children;
+        }
+        $term->TEST = $label;
+        array_push($result, $term);
+      }      
+    }
+  } else {
+    foreach($terms as &$term) {
+      if($filter == '' || array_key_exists($term->tid, $allowed)) {
+        $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
+        if(is_array($children)) {
+          $term->children = $children;
+        }
+        $term->TEST = $label;
+        array_push($result, $term);
       }
-      $term->TEST = $label;
-      array_push($result, $term);
     }
   }
   
@@ -315,7 +329,7 @@ function _term_reference_tree_get_children($tid, $vid) {
   $terms = array();
   
   foreach($q as $term) {
-    $terms[] = (object) $term;
+    $terms[$term->tid] = (object) $term;
   }
 
   return $terms;
@@ -325,13 +339,19 @@ function _term_reference_tree_get_children($tid, $vid) {
  * Implements hook_widget_field_form().
  */
 function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+
   $settings = $instance['widget']['settings'];
   $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
   $path = drupal_get_path('module', 'term_reference_tree');
   $value_key = key($field['columns']);
 
-  $allowed = _term_reference_tree_get_allowed_values($settings['filter_view']);
-  $terms = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid, $allowed, $settings['filter_view'], $instance['label']);
+  #$allowed = _term_reference_tree_get_allowed_values($settings['filter_view']);
+  if(!isset($element['#allowed'])) 
+    $element['#allowed'] = _term_reference_tree_get_allowed_values($settings['filter_view']);
+  #$terms = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid, $allowed, $settings['filter_view'], $instance['label']);
+
+  $element['#options_tree'] = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid, $element['#allowed'], $settings['filter_view'], $instance['label']);
+  #dsm("<pre>".print_r($terms,true)."</pre>");
   
   $required = $element['#required'];
   if($field['cardinality'] == 1 && !$required) {
@@ -349,7 +369,9 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   
   
   $properties = array();
-  $options = _term_reference_tree_get_options($terms, $allowed, $settings['filter_view']);
+  #$options = _term_reference_tree_get_options($terms, $allowed, $settings['filter_view']);
+  $element['#options'] = _term_reference_tree_get_options($element['#options_tree'], $element['#allowed'], $settings['filter_view']);
+  
   $default_value = array();
 
   foreach($items as $item) {
@@ -373,8 +395,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#attached']['js'] = array($path . '/term_reference_tree.js');
       $element['#attached']['css'] = array($path . '/term_reference_tree.css');
       $element['#type'] = 'checkbox_tree';   
-      $element['#options'] = $options;
-      $element['#options_tree'] = $terms;
+      #$element['#options'] = $options;
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
       $element['#max_choices'] = $field['cardinality'];
       $element['#start_minimized'] = $settings['start_minimized'];
@@ -391,6 +412,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
     '#element_validate' => array('_term_reference_tree_widget_validate'),
     '#properties' => $properties,
   );
+  #dsm(print_r($element,true));
 
   return $element;
 }
@@ -411,11 +433,15 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
  *   The validated element.
  */
 function _term_reference_tree_widget_validate(&$element, &$form_state) {
+  $file = fopen('/tmp/log', 'a');
   $items = _term_reference_tree_flatten($element);
   $value = array();
 
+  fwrite($file, print_r($element,true));
+
   if($element['#max_choices'] != 1) {
     foreach($items as $child) {
+      error_log("{$child['#title']}: {$child['#return_value']} => {$child['#value']}");
       if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
         array_push($value, array($element['#value_key'] => $child['#value']));
 
@@ -446,7 +472,10 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
     form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
   }
 
+  fwrite($file, "Value:" . print_r($value,true));
+
   form_set_value($element, $value, $form_state);
+  fclose($file);
   return $element;
 }
 
