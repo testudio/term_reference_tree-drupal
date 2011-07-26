@@ -16,6 +16,7 @@ function term_reference_tree_field_widget_info() {
         'leaves_only' => 0,
         'filter_view' => '',
         'select_parents' => 0,
+        'track_list' => 0,
       ),
     ),
   );
@@ -81,6 +82,15 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
         '#value' => $settings['filter_view'],
       );
     }   
+    $form['track_list'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Track list'),
+      '#description' => t(
+          'Track what the user has chosen in a list below the tree.
+           Useful when the tree is large, with many levels.'),
+      '#default_value' => $settings['track_list'],
+      '#return_value' => 1,
+    );
   }
 
   return $form;
@@ -123,6 +133,11 @@ function term_reference_tree_element_info() {
       '#theme' => array('checkbox_tree_label'),
       '#pre_render' => array('form_pre_render_conditional_form_element'),
     ),
+    'checkbox_tree_track_list' => array(
+      '#input' => false,
+      '#theme' => array('checkbox_tree_track_list'),
+      '#pre_render' => array('form_pre_render_conditional_form_element'),
+    ),
   );
   
   return $types;
@@ -145,6 +160,9 @@ function term_reference_tree_theme() {
     'checkbox_tree_label' => array(
       'render element' => 'element',
     ),
+    'checkbox_tree_track_list' => array(
+      'render element' => 'element',
+    ),    
   );
 }
 
@@ -196,6 +214,12 @@ function theme_checkbox_tree($variables) {
     $attributes['class'][] = "term-reference-tree-start-minimized";
   }
 
+  $add_track_list = FALSE;
+  if(array_key_exists('#track_list', $element) && $element['#track_list']) {
+    $attributes['class'][] = "term-reference-tree-track-list-shown";
+    $add_track_list = TRUE;
+  }
+
   if(!empty($element['#max_choices'])) {
     $attributes['data-max-choices'] = $element['#max_choices'];
   }
@@ -203,7 +227,10 @@ function theme_checkbox_tree($variables) {
   if (!empty($element['#attributes']['class'])) {
     $attributes['class'] = array_merge($attributes['class'], $element['#attributes']['class']);
   }
-  return '<div' . drupal_attributes($attributes) . '>' . (!empty($element['#children']) ? $element['#children'] : '') . '</div>';
+  return 
+      '<div' . drupal_attributes($attributes) . '>' 
+    . (!empty($element['#children']) ? $element['#children'] : '') 
+    . '</div>';
 }
 
 
@@ -270,6 +297,35 @@ function theme_checkbox_tree_label($variables) {
 }
 
 /**
+ * Shows a list of items that have been checked.
+ * The display happens on the client-side.
+ * Use this function to theme the element's label,
+ * and the "nothing selected" message.
+ * 
+ * @param $variables Variables available for theming. 
+ */
+function theme_checkbox_tree_track_list($variables) {
+  //Should the label be singular or plural? Depends on cardinality of term field.
+  $label = format_plural(
+      $variables['element']['#max_choices'], 
+      'Checked item (click the item to uncheck it)', 
+      'Checked items (click an item to uncheck it)'
+  );
+  $output = 
+    '<div class="term-reference-track-list-container">
+       ' . $label . '
+       <ul class="term-reference-tree-track-list"/>
+     </div>';
+  //Add the "Nothing selected" text. To style it, replace it with whatever you want.
+  //Could do this with a file instead.
+  drupal_add_js(
+      'var termReferenceTreeNothingSelectedText = "' . t('[Nothing selected]'). '";', 
+      'inline'
+  );
+  return $output;
+}
+
+/**
  * This function returns a taxonomy term hierarchy in a nested array.
  *
  * @param $tid
@@ -311,6 +367,7 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
  *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
  */
 function _term_reference_tree_get_children($tid, $vid) {
+  //Should this use the new DB layer?
   $q = db_query("select d.tid, d.name from {taxonomy_term_data} d, {taxonomy_term_hierarchy} h where d.vid = :vid and d.tid = h.tid and h.parent = :tid", array(':vid' => $vid, ':tid'  => $tid));
   $terms = array();
   
@@ -332,7 +389,6 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
 
   $allowed = _term_reference_tree_get_allowed_values($settings['filter_view']);
   $terms = _term_reference_tree_get_term_hierarchy($field['settings']['allowed_values'][0]['parent'], $voc->vid, $allowed, $settings['filter_view'], $instance['label']);
-  
   $required = $element['#required'];
   if($field['cardinality'] == 1 && !$required) {
     array_unshift($terms, (object) array(
@@ -381,6 +437,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#leaves_only'] = $settings['leaves_only'];
       $element['#filter_view'] = $settings['filter_view'];
       $element['#select_parents'] = $settings['select_parents'];
+      $element['#track_list'] = $settings['track_list'];
 
       $value = (is_array($element['#value'])) ? $element['#value'] : array();
       break;
@@ -552,13 +609,23 @@ function _term_reference_tree_build($element, $form_state) {
     $element['#attributes']['class'][] = 'select-parents';
   }
 
-  if($max_choices != 1)
+  if($max_choices != 1) {
     $element['#tree'] = TRUE;
+  }
       
   $tree = new stdClass;
   $tree->children = $terms;
   $element[] = _term_reference_tree_build_level($element, $tree, $form_state, $value, $max_choices);
-
+  
+  //Add a track list element?
+  $track_list = !empty($element['#track_list']) && $element['#track_list'];
+  if ( $track_list ) {
+    $element[] = array(
+      '#type' => 'checkbox_tree_track_list',
+      '#max_choices' => $max_choices,
+    );
+  }
+  
   return $element;
 }
 
