@@ -73,17 +73,23 @@ Styles for track list of selected options.
 */
 
 .term-reference-tree-track-list li {
-  list-style-type: disc;
+  list-style-image: url("images/bullet_delete.png");
   margin-left: 30px;
-}
-
-.term-reference-track-list-container {
-  border: 1px solid #CCCCCC;
-  padding: 5px;
+  min-height: 16px;
   cursor: pointer;
 }
 
-#term_ref_tree_nothing_message {
-  cursor: default;
+.term-reference-tree-track-list li.term_ref_tree_nothing_message {
   list-style-type: none;
+  list-style-image: none;
+  font-style: italic;
+  cursor: default;
+}
+
+.term-reference-track-list-container {
+  padding: 5px;
+}
+
+.term-reference-track-list-label {
+  font-weight: bold;
 }

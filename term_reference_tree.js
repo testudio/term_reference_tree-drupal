@@ -36,6 +36,7 @@
           }
         });
       }
+      
       //On page load, check if the user wants a track list. If so, add the 
       //currently selected items to it.
       if($(this).hasClass('term-reference-tree-track-list-shown')) {
@@ -70,7 +71,10 @@
           var event_target = $(event.target);
           var control_id = event_target.data('control_id');
           event_target.remove();
-          $('#' + control_id).removeAttr('checked');
+
+          var checkbox = $('#' + control_id);
+          checkbox.removeAttr('checked');
+          checkMaxChoices(tree, checkbox);
           //Show "nothing selected" message, if needed.
           showNothingSelectedMessage(track_list_container);
         });
@@ -175,7 +179,7 @@
   function showNothingSelectedMessage(track_list_container) {
     //Is the message there already?
     var message_showing = 
-        (track_list_container.find('#term_ref_tree_nothing_message').size() != 0);
+        (track_list_container.find('.term_ref_tree_nothing_message').size() != 0);
     //Number of real items showing.
     var num_real_items_showing = 
         message_showing 
@@ -185,14 +189,14 @@
       //No items showing, so show the message.
       if ( ! message_showing ) {
         track_list_container.append(
-            '<li id="term_ref_tree_nothing_message">' + termReferenceTreeNothingSelectedText + '</li>'
+            '<li class="term_ref_tree_nothing_message">' + termReferenceTreeNothingSelectedText + '</li>'
         );
       }
     }
     else { // !(num_real_items_showing == 0)
       //There are real items.
       if ( message_showing ) {
-        track_list_container.find('#term_ref_tree_nothing_message').remove();
+        track_list_container.find('.term_ref_tree_nothing_message').remove();
       }
     }
   }
@@ -203,7 +207,7 @@
    * @param track_list_container Where the message is shown.
    */
   function removeNothingSelectedMessage(track_list_container) {
-    track_list_container.find('#term_ref_tree_nothing_message').remove();
+    track_list_container.find('.term_ref_tree_nothing_message').remove();
   }
 
   // This helper function checks if the maximum number of choices is already selected.
