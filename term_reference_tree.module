@@ -362,7 +362,7 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
  *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
  */
 function _term_reference_tree_get_children($tid, $vid) {
-  $q = db_query("select d.tid, d.name from {taxonomy_term_data} d, {taxonomy_term_hierarchy} h where d.vid = :vid and d.tid = h.tid and h.parent = :tid", array(':vid' => $vid, ':tid'  => $tid));
+  $q = db_query("select d.tid, d.name from {taxonomy_term_data} d, {taxonomy_term_hierarchy} h where d.vid = :vid and d.tid = h.tid and h.parent = :tid order by weight, name, tid", array(':vid' => $vid, ':tid'  => $tid));
   $terms = array();
   
   foreach($q as $term) {
