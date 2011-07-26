@@ -148,11 +148,6 @@ function term_reference_tree_theme() {
   );
 }
 
-
-function term_reference_tree_form_alter(&$form, &$form_state, $form_id) {
-  error_log("term_reference_tree_form_alter $form_id");
-}
-
 /**
  * Process the checkbox_tree widget.
  * 
@@ -167,8 +162,6 @@ function term_reference_tree_form_alter(&$form, &$form_state, $form_id) {
  *   The processed element.
  */
 function term_reference_tree_process_checkbox_tree($element, $form_state) {
-  error_log("term_reference_tree_process_checkbox_tree");
-  
   if(is_array($form_state)) {
     $allowed = '';
     
@@ -383,7 +376,6 @@ function _term_reference_tree_get_children($tid, $vid) {
  * Implements hook_widget_field_form().
  */
 function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-  error_log("term_reference_tree_field_widget_form");
   $settings = $instance['widget']['settings'];
   $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
   $path = drupal_get_path('module', 'term_reference_tree');
