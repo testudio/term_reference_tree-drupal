@@ -17,6 +17,7 @@ function term_reference_tree_field_widget_info() {
         'filter_view' => '',
         'select_parents' => 0,
         'track_list' => 0,
+        'token_display' => '',
       ),
     ),
   );
@@ -81,7 +82,29 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
         '#type' => 'hidden',
         '#value' => $settings['filter_view'],
       );
-    }   
+    }
+
+    if(module_exists('token')) {
+      $form['token_display'] = array(
+        '#type' => 'textarea',
+        '#title' => 'Custom Term Label',
+        '#description' => t("Use tokens to change the term labels for the checkboxes and/or radio buttons.  Leave this field blank to use the term name."),
+        '#default_value' => $settings['token_display'],
+      );
+
+      $form['tokens_list'] = array(
+        '#theme' => 'token_tree',
+        '#token_types' => array('term'),
+      );
+    }
+    else {
+      $form['token_display'] = array(
+        '#type' => 'hidden',
+        '#value' => $settings['token_display'],
+      );
+    }
+
+    
     $form['track_list'] = array(
       '#type' => 'checkbox',
       '#title' => t('Track list'),
@@ -476,11 +499,12 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#max_choices'] = $field['cardinality'];
       $element['#start_minimized'] = $settings['start_minimized'];
       $element['#leaves_only'] = $settings['leaves_only'];
-      $element['#filter_view'] = $settings['filter_view'];
+      $element['#filter_view'] = module_exists('views') ? $settings['filter_view'] : '';
       $element['#select_parents'] = $settings['select_parents'];
       $element['#track_list'] = $settings['track_list'];
       $element['#parent_tid'] = $field['settings']['allowed_values'][0]['parent'];
       $element['#vocabulary'] = $voc->vid;
+      $element['#token_display'] = module_exists('token') ? $settings['token_display'] : '';
       break;
   }
   
@@ -687,6 +711,11 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
       '#attributes' => isset($element['#attributes']) ? $element['#attributes'] : NULL,
       '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
     );
+
+    if($element['#token_display'] != '') {
+      $t = taxonomy_term_load($term->tid);
+      $e['#title'] = token_replace($element['#token_display'], array('term' => $t), array('clear' => TRUE));
+    }
 
     if($e['#type'] == 'radio') {
       $parents_for_id = array_merge($element['#parents'], array($term->tid));
