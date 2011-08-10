@@ -69,8 +69,8 @@
 }
 
 /*
-Styles for track list of selected options.
-*/
+ * Styles for track list of selected options.
+ */
 
 .term-reference-tree-track-list li {
   list-style-image: url("images/bullet_delete.png");
@@ -92,4 +92,20 @@ Styles for track list of selected options.
 
 .term-reference-track-list-label {
   font-weight: bold;
+}
+
+/*
+ * Styles for display element
+ */
+
+.field-type-taxonomy-term-reference .selected {
+  font-weight: bold;
+}
+
+.field-type-taxonomy-term-reference .unselected {
+  font-weight: normal;
+}
+
+.field-type-taxonomy-term-reference ul {
+  margin-top: 0;
 }
