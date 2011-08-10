@@ -358,6 +358,7 @@ function theme_checkbox_tree_track_list($variables) {
   $output = 
     '<div class="term-reference-track-list-container">
        <div class="term-reference-track-list-label">' . $label . '</div>
+       <ul class="term-reference-tree-track-list"/>
      </div>';
   //Add the "Nothing selected" text. To style it, replace it with whatever you want.
   //Could do this with a file instead.
