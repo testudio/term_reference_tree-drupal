@@ -23,6 +23,64 @@ function term_reference_tree_field_widget_info() {
   );
 }
 
+function term_reference_tree_field_formatter_info() {
+  return array(
+    'term_reference_tree' => array(
+      'label' => 'Term reference tree',
+      'field types' => array('taxonomy_term_reference'),
+    ),
+  );
+}
+
+function term_reference_tree_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    case 'term_reference_tree':
+      /*
+      dsm($items);
+      $output = '<ul>';
+      foreach($items as $delta => $item) {
+        $term = taxonomy_term_load($item['tid']);
+        $name = $term->name;
+        $output .= "<li>$name</li>";
+      }
+      $output .= '</ul>';
+      $element[] = array('#markup' => $output);
+      */
+
+      $element[] = array(
+        '#theme' => 'term_tree_list',
+        '#data' => $items,
+      );
+      break;
+  }
+
+  return $element;
+}
+
+function theme_term_tree_list($variables) {
+  $element =& $variables['element'];
+  $data =& $element['#data'];
+  dsm($data);
+
+  $tree = array();
+  foreach($data as $item) {
+    $p = taxonomy_get_parents($item['tid']);
+    $parents = array();
+    foreach($p as $term) {
+      array_push($parents, $term->tid);
+    }
+    dsm($parents, 'parents');
+    drupal_array_set_nested_value($tree, $parents, $item);
+  }
+  dsm($tree);
+
+  $output = '<ul class="term">';
+  $output .= '</ul>';
+  return $output;
+}
+
 /**
  * Implements hook_field_widget_settings_form().
  */
@@ -185,7 +243,10 @@ function term_reference_tree_theme() {
     ),
     'checkbox_tree_track_list' => array(
       'render element' => 'element',
-    ),    
+    ),
+    'term_tree_list' => array(
+      'render element' => 'element',
+    ),
   );
 }
 
@@ -361,7 +422,7 @@ function theme_checkbox_tree_item($variables) {
  */
 function theme_checkbox_tree_label($variables) {
   $element = $variables['element'];
-  $output = "<div class='parent-term'>" . check_plain($element['#value']) . "</div>";
+  $output = "<div class='parent-term'>" . $element['#value'] . "</div>";
   return $output;
 }
 

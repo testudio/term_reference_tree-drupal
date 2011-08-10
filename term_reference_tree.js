@@ -54,7 +54,7 @@
           label_element = labels[index];
           addItemToTrackList(
               track_list_container,         //Where to add new item.
-              label_element.innerHTML,      //Text of new item.
+              label_element.html(),         //Text of new item.
               $(label_element).attr('for'), //Id of control new item is for.
               input_type                    //checkbox or radio
           );
@@ -89,7 +89,7 @@
             label_element = event_target.next();
             addItemToTrackList(
                 track_list_container,         //Where to add new item.
-                label_element.text(),         //Text of new item.
+                label_element.html(),         //Text of new item.
                 $(label_element).attr('for'), //Id of control new item is for.
                 input_type                    //checkbox or radio
             );
@@ -120,7 +120,7 @@
    * @param control_type Control type - 'checkbox' or 'radio'.
    */
   function addItemToTrackList(track_list_container, item_text, control_id, control_type) {
-    var new_item = $('<li>' + Drupal.checkPlain(item_text) + '</li>');
+    var new_item = $('<li>' + item_text + '</li>');
     new_item.data('control_id', control_id);
     //Add an id for easy finding of the item.
     new_item.attr('id', control_id + '_list');
