@@ -40,7 +40,7 @@
       //On page load, check if the user wants a track list. If so, add the 
       //currently selected items to it.
       if($(this).hasClass('term-reference-tree-track-list-shown')) {
-        var track_list_container = $('<ul class="term-reference-tree-track-list"></ul>').appendTo($('.term-reference-track-list-container',this));
+        var track_list_container = $(this).find('.term-reference-tree-track-list');
         //Var to track whether using checkboxes or radio buttons.
         var input_type = 
           ( $(this).has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
@@ -54,7 +54,7 @@
           label_element = labels[index];
           addItemToTrackList(
               track_list_container,         //Where to add new item.
-              label_element.html(),         //Text of new item.
+              label_element.innerHTML,      //Text of new item.
               $(label_element).attr('for'), //Id of control new item is for.
               input_type                    //checkbox or radio
           );
@@ -89,7 +89,7 @@
             label_element = event_target.next();
             addItemToTrackList(
                 track_list_container,         //Where to add new item.
-                label_element.html(),         //Text of new item.
+                label_element.text(),         //Text of new item.
                 $(label_element).attr('for'), //Id of control new item is for.
                 input_type                    //checkbox or radio
             );
@@ -120,7 +120,7 @@
    * @param control_type Control type - 'checkbox' or 'radio'.
    */
   function addItemToTrackList(track_list_container, item_text, control_id, control_type) {
-    var new_item = $('<li>' + item_text + '</li>');
+    var new_item = $('<li>' + Drupal.checkPlain(item_text) + '</li>');
     new_item.data('control_id', control_id);
     //Add an id for easy finding of the item.
     new_item.attr('id', control_id + '_list');
@@ -213,11 +213,7 @@
   // This helper function checks if the maximum number of choices is already selected.
   // If so, it disables all the other options.  If not, it enables them.
   function checkMaxChoices(item, checkbox) {
-    var maxChoices = -1;
-    try {
-      maxChoices = parseInt(Drupal.settings.term_reference_tree.trees[item.attr('id')]['max_choices']);
-    }
-    catch (e){}
+    var maxChoices = item.attr('data-max-choices');
     var count = item.find(':checked').length;
     
     if(maxChoices > 0 && count >= maxChoices) {

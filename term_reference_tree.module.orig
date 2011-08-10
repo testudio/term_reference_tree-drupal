@@ -17,68 +17,9 @@ function term_reference_tree_field_widget_info() {
         'filter_view' => '',
         'select_parents' => 0,
         'track_list' => 0,
-        'token_display' => '',
       ),
     ),
   );
-}
-
-function term_reference_tree_field_formatter_info() {
-  return array(
-    'term_reference_tree' => array(
-      'label' => 'Term reference tree',
-      'field types' => array('taxonomy_term_reference'),
-    ),
-  );
-}
-
-function term_reference_tree_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
-  $element = array();
-
-  switch ($display['type']) {
-    case 'term_reference_tree':
-      /*
-      dsm($items);
-      $output = '<ul>';
-      foreach($items as $delta => $item) {
-        $term = taxonomy_term_load($item['tid']);
-        $name = $term->name;
-        $output .= "<li>$name</li>";
-      }
-      $output .= '</ul>';
-      $element[] = array('#markup' => $output);
-      */
-
-      $element[] = array(
-        '#theme' => 'term_tree_list',
-        '#data' => $items,
-      );
-      break;
-  }
-
-  return $element;
-}
-
-function theme_term_tree_list($variables) {
-  $element =& $variables['element'];
-  $data =& $element['#data'];
-  dsm($data);
-
-  $tree = array();
-  foreach($data as $item) {
-    $p = taxonomy_get_parents($item['tid']);
-    $parents = array();
-    foreach($p as $term) {
-      array_push($parents, $term->tid);
-    }
-    dsm($parents, 'parents');
-    drupal_array_set_nested_value($tree, $parents, $item);
-  }
-  dsm($tree);
-
-  $output = '<ul class="term">';
-  $output .= '</ul>';
-  return $output;
 }
 
 /**
@@ -140,29 +81,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
         '#type' => 'hidden',
         '#value' => $settings['filter_view'],
       );
-    }
-
-    if(module_exists('token')) {
-      $form['token_display'] = array(
-        '#type' => 'textarea',
-        '#title' => 'Custom Term Label',
-        '#description' => t("Use tokens to change the term labels for the checkboxes and/or radio buttons.  Leave this field blank to use the term name."),
-        '#default_value' => $settings['token_display'],
-      );
-
-      $form['tokens_list'] = array(
-        '#theme' => 'token_tree',
-        '#token_types' => array('term'),
-      );
-    }
-    else {
-      $form['token_display'] = array(
-        '#type' => 'hidden',
-        '#value' => $settings['token_display'],
-      );
-    }
-
-    
+    }   
     $form['track_list'] = array(
       '#type' => 'checkbox',
       '#title' => t('Track list'),
@@ -243,10 +162,7 @@ function term_reference_tree_theme() {
     ),
     'checkbox_tree_track_list' => array(
       'render element' => 'element',
-    ),
-    'term_tree_list' => array(
-      'render element' => 'element',
-    ),
+    ),    
   );
 }
 
@@ -420,7 +336,7 @@ function theme_checkbox_tree_item($variables) {
  */
 function theme_checkbox_tree_label($variables) {
   $element = $variables['element'];
-  $output = "<div class='parent-term'>" . $element['#value'] . "</div>";
+  $output = "<div class='parent-term'>" . check_plain($element['#value']) . "</div>";
   return $output;
 }
 
@@ -442,6 +358,7 @@ function theme_checkbox_tree_track_list($variables) {
   $output = 
     '<div class="term-reference-track-list-container">
        <div class="term-reference-track-list-label">' . $label . '</div>
+       <ul class="term-reference-tree-track-list"/>
      </div>';
   //Add the "Nothing selected" text. To style it, replace it with whatever you want.
   //Could do this with a file instead.
@@ -557,12 +474,11 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#max_choices'] = $field['cardinality'];
       $element['#start_minimized'] = $settings['start_minimized'];
       $element['#leaves_only'] = $settings['leaves_only'];
-      $element['#filter_view'] = module_exists('views') ? $settings['filter_view'] : '';
+      $element['#filter_view'] = $settings['filter_view'];
       $element['#select_parents'] = $settings['select_parents'];
       $element['#track_list'] = $settings['track_list'];
       $element['#parent_tid'] = $field['settings']['allowed_values'][0]['parent'];
       $element['#vocabulary'] = $voc->vid;
-      $element['#token_display'] = module_exists('token') ? $settings['token_display'] : '';
       break;
   }
   
@@ -769,11 +685,6 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
       '#attributes' => isset($element['#attributes']) ? $element['#attributes'] : NULL,
       '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
     );
-
-    if($element['#token_display'] != '') {
-      $t = taxonomy_term_load($term->tid);
-      $e['#title'] = token_replace($element['#token_display'], array('term' => $t), array('clear' => TRUE));
-    }
 
     if($e['#type'] == 'radio') {
       $parents_for_id = array_merge($element['#parents'], array($term->tid));
