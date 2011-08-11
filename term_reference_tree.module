@@ -119,7 +119,7 @@ function _term_reference_tree_output_list_level(&$element, &$tree) {
       $uri = taxonomy_term_uri($term);
       $class = $item['selected'] ? 'selected' : 'unselected';
       $output .= "<li class='$class'>";
-      if($tokens_selected != '') {
+      if($tokens_selected != '' && module_exists('token')) {
         $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;
         $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
       }
@@ -145,7 +145,7 @@ function term_reference_tree_field_formatter_settings_form($field, $instance, $v
   $settings = $display['settings'];
 
   $element = array();
-  if($display['type'] == 'term_reference_tree') {
+  if($display['type'] == 'term_reference_tree' && module_exists('token')) {
     $element['token_display_selected'] = array(
       '#type' => 'textarea',
       '#title' => 'Custom Term Label',
@@ -892,7 +892,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
       '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
     );
 
-    if($element['#token_display'] != '') {
+    if($element['#token_display'] != '' && module_exists('token')) {
       $t = taxonomy_term_load($term->tid);
       $e['#title'] = token_replace($element['#token_display'], array('term' => $t), array('clear' => TRUE));
     }
