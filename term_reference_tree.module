@@ -23,6 +23,9 @@ function term_reference_tree_field_widget_info() {
   );
 }
 
+/**
+ * Implements hook_field_formatter_info().
+ */
 function term_reference_tree_field_formatter_info() {
   return array(
     'term_reference_tree' => array(
@@ -36,6 +39,9 @@ function term_reference_tree_field_formatter_info() {
   );
 }
 
+/**
+ * Implements hook_field_formatter_view().
+ */
 function term_reference_tree_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
   $element = array();
 
@@ -53,13 +59,14 @@ function term_reference_tree_field_formatter_view($entity_type, $entity, $field,
   return $element;
 }
 
+/**
+ * Themes the term tree display (as opposed to the select widget).
+ */
 function theme_term_tree_list($variables) {
   $element =& $variables['element'];
   $data =& $element['#data'];
 
   $tree = array();
-
-  dsm($variables);
 
   # For each selected term:
   foreach($data as $item) {
@@ -96,34 +103,43 @@ function theme_term_tree_list($variables) {
   return _term_reference_tree_output_list_level($element, $tree);
 }
 
+/**
+ * Helper function to output a single level of the term reference tree
+ * display.
+ */
 function _term_reference_tree_output_list_level(&$element, &$tree) {
-  $output = '<ul class="term">';
-  $settings = $element['#display']['settings'];
-  $tokens_selected = $settings['token_display_selected'];
-  $tokens_unselected = ($settings['token_display_unselected'] != '') ? $settings['token_display_unselected'] : $tokens_selected;
-  
-  foreach($tree['children'] as &$item) {
-    $term = taxonomy_term_load($item['tid']);
-    $uri = taxonomy_term_uri($term);
-    $class = $item['selected'] ? 'selected' : 'unselected';
-    $output .= "<li class='$class'>";
-    if($tokens_selected != '') {
-      $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;
-      $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
-    }
-    else {
-      $output .= l($term->name, $uri['path'], array('html' => true));
-    }
-    if(isset($item['children'])) {
-      $output .= _term_reference_tree_output_list_level($element, $item);
-    }
-    $output .= "</li>";
-  }
+  if(isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
+    $output = '<ul class="term">';
+    $settings = $element['#display']['settings'];
+    $tokens_selected = $settings['token_display_selected'];
+    $tokens_unselected = ($settings['token_display_unselected'] != '') ? $settings['token_display_unselected'] : $tokens_selected;
 
-  $output .= '</ul>';
-  return $output;
+    foreach($tree['children'] as &$item) {
+      $term = taxonomy_term_load($item['tid']);
+      $uri = taxonomy_term_uri($term);
+      $class = $item['selected'] ? 'selected' : 'unselected';
+      $output .= "<li class='$class'>";
+      if($tokens_selected != '') {
+        $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;
+        $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
+      }
+      else {
+        $output .= l($term->name, $uri['path'], array('html' => true));
+      }
+      if(isset($item['children'])) {
+        $output .= _term_reference_tree_output_list_level($element, $item);
+      }
+      $output .= "</li>";
+    }
+
+    $output .= '</ul>';
+    return $output;
+  }
 }
 
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
 function term_reference_tree_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
   $display = $instance['display'][$view_mode];
   $settings = $display['settings'];
@@ -153,6 +169,9 @@ function term_reference_tree_field_formatter_settings_form($field, $instance, $v
   return $element;
 }
 
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
 function term_reference_tree_field_formatter_settings_summary($field, $instance, $view_mode) {
   $display = $instance['display'][$view_mode];
   $settings = $display['settings'];
@@ -568,7 +587,8 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
         array_push($result, $term);
       }      
     }
-  } else {
+  }
+  else {
     foreach($terms as &$term) {
       if($filter == '' || array_key_exists($term->tid, $allowed)) {
         $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
@@ -802,10 +822,12 @@ function _term_reference_tree_get_allowed_values($filter) {
         foreach($view->result as $item) {
           $allowed[$item->tid] = true;
         }
-      } else {
+      }
+      else {
         drupal_set_message("Cannot access view for term reference tree widget.", 'warning');
       }
-    } else {
+    }
+    else {
       drupal_set_message("Term reference tree: no view named '$viewname'", 'warning');
     }
   }
