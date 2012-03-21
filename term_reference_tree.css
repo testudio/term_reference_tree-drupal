@@ -27,6 +27,8 @@
   width: 16px;
   height: 16px;
   display: inline-block;
+  *display: inline;
+  zoom: 1;
   vertical-align: middle;
   margin-right: 4px;
 }
@@ -45,6 +47,8 @@
 
 .field-widget-term-reference-tree .form-item {
   display: inline-block;
+  *display: inline;
+  zoom: 1;
 }
 
 .field-widget-term-reference-tree .disabled {
@@ -53,6 +57,8 @@
 
 .field-widget-term-reference-tree .parent-term {
   display: inline-block;
+  *display: inline;
+  zoom: 1;
   font-weight: bold;
 }
 
