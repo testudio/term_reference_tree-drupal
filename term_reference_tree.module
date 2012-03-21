@@ -86,12 +86,12 @@ function theme_term_tree_list($variables) {
     # For each term in the above array:
     foreach($values as $tid) {
       # current[children][term_id] = new array
-      if(!isset($current['children'][$tid])) {
+      if (!isset($current['children'][$tid])) {
         $current['children'][$tid] = array('selected' => FALSE);
       }
       
       # If this is the last value in the array, tree[children][term_id][selected] = true
-      if($tid == $original_tid) {
+      if ($tid == $original_tid) {
         $current['children'][$tid]['selected'] = TRUE;
       }
 
@@ -108,7 +108,7 @@ function theme_term_tree_list($variables) {
  * display.
  */
 function _term_reference_tree_output_list_level(&$element, &$tree) {
-  if(isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
+  if (isset($tree['children']) && is_array($tree['children']) && count($tree['children'] > 0)) {
     $output = '<ul class="term">';
     $settings = $element['#display']['settings'];
     $tokens_selected = $settings['token_display_selected'];
@@ -119,14 +119,14 @@ function _term_reference_tree_output_list_level(&$element, &$tree) {
       $uri = taxonomy_term_uri($term);
       $class = $item['selected'] ? 'selected' : 'unselected';
       $output .= "<li class='$class'>";
-      if($tokens_selected != '' && module_exists('token')) {
+      if ($tokens_selected != '' && module_exists('token')) {
         $replace = $item['selected'] ? $tokens_selected : $tokens_unselected;
         $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
       }
       else {
         $output .= l(entity_label('taxonomy_term', $term), $uri['path'], array('html' => true));
       }
-      if(isset($item['children'])) {
+      if (isset($item['children'])) {
         $output .= _term_reference_tree_output_list_level($element, $item);
       }
       $output .= "</li>";
@@ -145,7 +145,7 @@ function term_reference_tree_field_formatter_settings_form($field, $instance, $v
   $settings = $display['settings'];
 
   $element = array();
-  if($display['type'] == 'term_reference_tree' && module_exists('token')) {
+  if ($display['type'] == 'term_reference_tree' && module_exists('token')) {
     $element['token_display_selected'] = array(
       '#type' => 'textarea',
       '#title' => 'Custom Term Label',
@@ -193,7 +193,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
   $settings = $widget['settings'];
   $form = array();
   
-  if($widget['type'] == 'term_reference_tree') {
+  if ($widget['type'] == 'term_reference_tree') {
     $form['start_minimized'] = array(
       '#type' => 'checkbox',
       '#title' => t('Start minimized'),
@@ -219,12 +219,12 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       '#return_value' => 1,
     );
 
-    if(module_exists('views')) {
+    if (module_exists('views')) {
       $views = views_get_all_views();
       $options = array('' => 'none');
       
       foreach($views as $name => $view) {
-        if($view->base_table == 'taxonomy_term_data') {
+        if ($view->base_table == 'taxonomy_term_data') {
           foreach($view->display as $display) {
             $options["$name:{$display->id}"] = "{$view->human_name}: {$display->display_title}";
           }
@@ -246,7 +246,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       );
     }
 
-    if(module_exists('token')) {
+    if (module_exists('token')) {
       $form['token_display'] = array(
         '#type' => 'textarea',
         '#title' => 'Custom Term Label',
@@ -285,7 +285,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
  * Makes sure that cardinality is unlimited if auto-select parents is enabled.
  */
 function _term_reference_tree_select_parents_validate($element, &$form_state) {
-  if($form_state['values']['instance']['widget']['settings']['select_parents'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
+  if ($form_state['values']['instance']['widget']['settings']['select_parents'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
     // This is pretty wonky syntax for the field name in form_set_error, but it's
     // correct.
     form_set_error('field][cardinality', t('You must select an Unlimited number of values if Select Parents Automatically is enabled.'));
@@ -368,20 +368,20 @@ function term_reference_tree_theme() {
  *   The processed element.
  */
 function term_reference_tree_process_checkbox_tree($element, $form_state) {
-  if(is_array($form_state)) {
+  if (is_array($form_state)) {
     if (!empty($element['#max_choices']) && $element['#max_choices'] != '-1')
       drupal_add_js(array('term_reference_tree' => array('trees' => array($element['#id'] => array('max_choices'=>$element['#max_choices'])))), 'setting');
     $allowed = '';
     
-    if($element['#filter_view'] != '') {
+    if ($element['#filter_view'] != '') {
       $allowed = _term_reference_tree_get_allowed_values($element['#filter_view']);
     }
 
-    if(empty($element['#options'])) {
+    if (empty($element['#options'])) {
       $element['#options_tree'] = _term_reference_tree_get_term_hierarchy($element['#parent_tid'], $element['#vocabulary'], $allowed, $element['#filter_view'], '');
 
       $required = $element['#required'];
-      if($element['#max_choices'] == 1 && !$required) {
+      if ($element['#max_choices'] == 1 && !$required) {
         array_unshift($element['#options_tree'], (object) array(
           'tid' => '',
           'name' => 'N/A',
@@ -395,11 +395,11 @@ function term_reference_tree_process_checkbox_tree($element, $form_state) {
     $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
     $terms = !empty($element['#options_tree']) ? $element['#options_tree'] : array();
     $max_choices = !empty($element['#max_choices']) ? $element['#max_choices'] : 1;
-    if(array_key_exists('#select_parents', $element) && $element['#select_parents']) {
+    if (array_key_exists('#select_parents', $element) && $element['#select_parents']) {
       $element['#attributes']['class'][] = 'select-parents';
     }
 
-    if($max_choices != 1)
+    if ($max_choices != 1)
       $element['#tree'] = TRUE;
 
     $tree = new stdClass;
@@ -438,20 +438,20 @@ function theme_checkbox_tree($variables) {
   }
   $attributes['class'][] = 'term-reference-tree';
   
-  if(form_get_error($element)) {
+  if (form_get_error($element)) {
     $attributes['class'][] = 'error';
   }
   
-  if(!empty($element['#required'])) {
+  if (!empty($element['#required'])) {
     $attributes['class'][] = 'required';
   }
 
-  if(array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
+  if (array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
     $attributes['class'][] = "term-reference-tree-start-minimized";
   }
 
   $add_track_list = FALSE;
-  if(array_key_exists('#track_list', $element) && $element['#track_list']) {
+  if (array_key_exists('#track_list', $element) && $element['#track_list']) {
     $attributes['class'][] = "term-reference-tree-track-list-shown";
     $add_track_list = TRUE;
   }
@@ -473,12 +473,12 @@ function theme_checkbox_tree($variables) {
 function theme_checkbox_tree_level($variables) {
   $element = $variables['element'];
   $sm = '';
-  if(array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
+  if (array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
     $sm = " term-reference-tree-start-minimized";
   }
 
   $max_choices = 0;
-  if(array_key_exists('#max_choices', $element)) {
+  if (array_key_exists('#max_choices', $element)) {
     $max_choices = $element['#max_choices'];
   }
 
@@ -504,11 +504,11 @@ function theme_checkbox_tree_item($variables) {
   $children = element_children($element);
   $output = "";
   
-  if(is_array($children) && count($children) > 1) {
+  if (is_array($children) && count($children) > 1) {
     $output .= "<div class='term-reference-tree-button'></div>";
 
   }
-  elseif(!$element['#leaves_only']) {
+  elseif (!$element['#leaves_only']) {
     $output .= "<div class='no-term-reference-tree-button'></div>";
   }
 
@@ -575,12 +575,12 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
   
   $result = array();
 
-  if($filter != '') {
+  if ($filter != '') {
     foreach($allowed as $k => $v) {
-      if(array_key_exists($k, $terms)) {
+      if (array_key_exists($k, $terms)) {
         $term =& $terms[$k];
         $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
-        if(is_array($children)) {
+        if (is_array($children)) {
           $term->children = $children;
         }
         $term->TEST = $label;
@@ -590,9 +590,9 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
   }
   else {
     foreach($terms as &$term) {
-      if($filter == '' || array_key_exists($term->tid, $allowed)) {
+      if ($filter == '' || array_key_exists($term->tid, $allowed)) {
         $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
-        if(is_array($children)) {
+        if (is_array($children)) {
           $term->children = $children;
         }
         $term->TEST = $label;
@@ -644,7 +644,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $default_value = array();
   foreach($items as $item) {
     $key = $item[$value_key];
-    if($key === 0) {
+    if ($key === 0) {
       $default_value[$key] = '0';
     }
     else {
@@ -655,7 +655,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
   $multiple = $field['cardinality'] > 1 || $field['cardinality'] == FIELD_CARDINALITY_UNLIMITED;
   $properties = array();
 
-  if(!array_key_exists('#value', $element))
+  if (!array_key_exists('#value', $element))
     $element['#value'] = array();
 
   // A switch statement, in case we ever add more widgets to this module.
@@ -717,16 +717,16 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
   $items = _term_reference_tree_flatten($element, $form_state);
   $value = array();
 
-  if($element['#max_choices'] != 1) {
+  if ($element['#max_choices'] != 1) {
     foreach($items as $child) {
-      if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
+      if (array_key_exists('#value', $child) && $child['#value'] !== 0) {
         array_push($value, array($element['#value_key'] => $child['#value']));
 
         // If the element is leaves only and select parents is on, then automatically
         // add all the parents of each selected value.
-        if($element['#select_parents'] && $element['#leaves_only']) {
+        if ($element['#select_parents'] && $element['#leaves_only']) {
           foreach($child['#parent_values'] as $parent_tid) {
-            if(!in_array(array($element['#value_key'] => $parent_tid), $value)) {
+            if (!in_array(array($element['#value_key'] => $parent_tid), $value)) {
               array_push($value, array($element['#value_key'] => $parent_tid));
             }
           }
@@ -737,15 +737,15 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
   else {
     // If it's a tree of radio buttons, they all have the same value, so we can just
     // grab the value of the first one.
-    if(count($items) > 0) {
+    if (count($items) > 0) {
       $child = reset($items);
-      if(array_key_exists('#value', $child) && $child['#value'] !== 0) {
+      if (array_key_exists('#value', $child) && $child['#value'] !== 0) {
         array_push($value, array($element['#value_key'] => $child['#value']));
       }       
     }
   }
   
-  if ($element['#required'] && count($value) == 0) {
+  if ($element['#required'] && empty($value)) {
     form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
   }
 
@@ -762,7 +762,7 @@ function _term_reference_tree_flatten($element, &$form_state) {
   $children = element_children($element);
   foreach($children as $c) {
     $child = $element[$c];
-    if(array_key_exists('#type', $child) && ($child['#type'] == 'radio' || $child['#type'] == 'checkbox')) {
+    if (array_key_exists('#type', $child) && ($child['#type'] == 'radio' || $child['#type'] == 'checkbox')) {
       $output[] = $child;
     }
     else {
@@ -791,9 +791,9 @@ function _term_reference_tree_flatten($element, &$form_state) {
 function _term_reference_tree_get_options(&$terms, &$allowed, $filter) {
   $options = array();
 
-  if(is_array($terms) && count($terms) > 0) {
+  if (is_array($terms) && count($terms) > 0) {
     foreach($terms as $term) {
-      if(!$filter || (is_array($allowed) && $allowed[$term->tid])) {
+      if (!$filter || (is_array($allowed) && $allowed[$term->tid])) {
         $options[$term->tid] = entity_label('taxonomy_term', $term);
         $options += _term_reference_tree_get_options($term->children, $allowed, $filter);
       }
@@ -816,11 +816,11 @@ function _term_reference_tree_get_allowed_values($filter) {
   $displayname = "";
   $allowed = array();
 
-  if(module_exists('views') && $filter != '') {
+  if (module_exists('views') && $filter != '') {
     list($viewname, $displayname) = explode(":", $filter);
     $view = views_get_view($viewname);
-    if(is_object($view)) {
-      if($view->access($displayname)) {
+    if (is_object($view)) {
+      if ($view->access($displayname)) {
         $view->execute_display($displayname);
         foreach($view->result as $item) {
           $allowed[$item->tid] = true;
@@ -864,12 +864,12 @@ function _term_reference_tree_get_allowed_values($filter) {
  */
 function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids) {
   $start_minimized = FALSE;
-  if(array_key_exists('#start_minimized', $element)) {
+  if (array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
   }
 
   $leaves_only = FALSE;
-  if(array_key_exists('#leaves_only', $element)) {
+  if (array_key_exists('#leaves_only', $element)) {
     $leaves_only = $element['#leaves_only'];
   }
   
@@ -881,7 +881,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
     '#term_name' => entity_label('taxonomy_term', $term),
   );
 
-  if(!$element['#leaves_only'] || count($term->children) == 0) {
+  if (!$element['#leaves_only'] || count($term->children) == 0) {
     $name = "edit-" . str_replace('_', '-', $element['#field_name']);
     $e = array(
       '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
@@ -895,12 +895,12 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
       '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
     );
 
-    if($element['#token_display'] != '' && module_exists('token')) {
+    if ($element['#token_display'] != '' && module_exists('token')) {
       $t = taxonomy_term_load($term->tid);
       $e['#title'] = token_replace($element['#token_display'], array('term' => $t), array('clear' => TRUE));
     }
 
-    if($e['#type'] == 'radio') {
+    if ($e['#type'] == 'radio') {
       $parents_for_id = array_merge($element['#parents'], array($term->tid));
       $e['#id'] = drupal_html_id('edit-' . implode('-', $parents_for_id));
       $e['#parents'] = $element['#parents'];
@@ -916,7 +916,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
   $container[$term->tid] = $e;
   
 
-  if(property_exists($term, 'children') && count($term->children) > 0) {
+  if (property_exists($term, 'children') && count($term->children) > 0) {
     $parents = $parent_tids;
     $parents[] = $term->tid;
     $container[$term->tid . '-children'] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices, $parents);
@@ -948,12 +948,12 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
  */
 function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids = array()) {
   $start_minimized = FALSE;
-  if(array_key_exists('#start_minimized', $element)) {
+  if (array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
   }
 
   $leaves_only = FALSE;
-  if(array_key_exists('#leaves_only', $element)) {
+  if (array_key_exists('#leaves_only', $element)) {
     $leaves_only = $element['#leaves_only'];
   }
   
