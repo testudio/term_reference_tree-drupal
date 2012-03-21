@@ -124,7 +124,7 @@ function _term_reference_tree_output_list_level(&$element, &$tree) {
         $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
       }
       else {
-        $output .= l($term->name, $uri['path'], array('html' => true));
+        $output .= l(entity_label('taxonomy_term', $term), $uri['path'], array('html' => true));
       }
       if(isset($item['children'])) {
         $output .= _term_reference_tree_output_list_level($element, $item);
@@ -617,15 +617,18 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
  */
 function _term_reference_tree_get_children($tid, $vid) {
   //Should this use the new DB layer?
-  $q = db_query("select d.tid, d.name from {taxonomy_term_data} d, {taxonomy_term_hierarchy} h where d.vid = :vid and d.tid = h.tid and h.parent = :tid order by weight, name, tid", array(':vid' => $vid, ':tid'  => $tid));
+  $select = db_select('taxonomy_term_data', 'd');
+  $select->join('taxonomy_term_hierarchy', 'h', 'd.tid = h.tid');
+  $result = $select->fields('d', array('tid'))
+    ->condition('d.vid', $vid, '=')
+    ->condition('h.parent', $tid, '=')
+    ->orderBy('weight')
+    ->orderBy('name')
+    ->orderBy('tid')
+    ->execute()
+    ->fetchCol(0);
 
-  $terms = array();
-  
-  foreach($q as $term) {
-    $terms[$term->tid] = (object) $term;
-  }
-
-  return $terms;
+  return taxonomy_term_load_multiple($result);
 }
 
 /**
@@ -791,7 +794,7 @@ function _term_reference_tree_get_options(&$terms, &$allowed, $filter) {
   if(is_array($terms) && count($terms) > 0) {
     foreach($terms as $term) {
       if(!$filter || (is_array($allowed) && $allowed[$term->tid])) {
-        $options[$term->tid] = $term->name;
+        $options[$term->tid] = entity_label('taxonomy_term', $term);
         $options += _term_reference_tree_get_options($term->children, $allowed, $filter);
       }
     }
@@ -875,14 +878,14 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
     '#max_choices' => $max_choices,
     '#start_minimized' => $start_minimized,
     '#leaves_only' => $leaves_only,
-    '#term_name' => $term->name,
+    '#term_name' => entity_label('taxonomy_term', $term),
   );
 
   if(!$element['#leaves_only'] || count($term->children) == 0) {
     $name = "edit-" . str_replace('_', '-', $element['#field_name']);
     $e = array(
       '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
-      '#title' => $term->name,
+      '#title' => entity_label('taxonomy_term', $term),
       '#on_value' => $term->tid,
       '#off_value' => 0,
       '#return_value' => $term->tid,
@@ -906,7 +909,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
   else {
     $e = array(
       '#type' => 'checkbox_tree_label',
-      '#value' => $term->name,
+      '#value' => entity_label('taxonomy_term', $term),
     );
   }
 

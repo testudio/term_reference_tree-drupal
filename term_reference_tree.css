@@ -104,14 +104,14 @@
  * Styles for display element
  */
 
-.field-type-taxonomy-term-reference .selected {
+.field-widget-term-reference-tree .selected {
   font-weight: bold;
 }
 
-.field-type-taxonomy-term-reference .unselected {
+.field-widget-term-reference-tree .unselected {
   font-weight: normal;
 }
 
-.field-type-taxonomy-term-reference ul {
+.field-widget-term-reference-tree ul {
   margin-top: 0;
 }
