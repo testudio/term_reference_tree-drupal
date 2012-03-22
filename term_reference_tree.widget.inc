@@ -20,6 +20,7 @@ function term_reference_tree_field_widget_info() {
         'track_list' => 0,
         'token_display' => '',
         'parent_term_id' => '',
+        'max_depth' => '',
       ),
     ),
   );
@@ -160,6 +161,15 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['track_list'],
       '#return_value' => 1,
     );
+    
+    $form['max_depth'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Maximum Depth'),
+      '#description' => t("Only show items up to this many levels deep."),
+      '#default_value' => $settings['max_depth'],
+      '#size' => 2,
+      '#return_value' => 1,
+    );    
     
     $form['parent_term_id'] = array(
       '#type' => 'textfield',
@@ -470,6 +480,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#type'] = 'checkbox_tree';   
       $element['#default_value'] = $multiple ? $default_value : array(reset($default_value) => reset($default_value));
       $element['#max_choices'] = $field['cardinality'];
+      $element['#max_depth'] = $settings['max_depth'];
       $element['#start_minimized'] = $settings['start_minimized'];
       $element['#leaves_only'] = $settings['leaves_only'];
       $element['#filter_view'] = module_exists('views') ? $settings['filter_view'] : '';
@@ -676,7 +687,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
 
   $container[$term->tid] = $e;  
 
-  if (property_exists($term, 'children') && count($term->children) > 0) {
+  if (($depth + 1 <= $element['#max_depth'] || !$element['#max_depth']) && property_exists($term, 'children') && count($term->children) > 0) {
     $parents = $parent_tids;
     $parents[] = $term->tid;
     $container[$term->tid . '-children'] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices, $parents, $depth+1);
