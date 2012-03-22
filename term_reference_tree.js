@@ -23,20 +23,6 @@
         $(this).find('input[type=checkbox]').change(function() {
           checkMaxChoices(tree, $(this));
         });
-
-        // On page load, check if the start minimized option is selected.  If so,
-        // minimize each tree, except for lists that contain a checked box.   
-        if($(this).hasClass('term-reference-tree-start-minimized')) {
-          $(this).find('.term-reference-tree-button').each(function() {
-            // If no sibling <ul>'s contain a checked checkbox, add the
-            // term-reference-tree-collapsed class and hide the <ul>.
-            if($(this).siblings('ul').has('input[type=checkbox]:checked').size() == 0 &&
-              $(this).siblings('ul').has('input[type=radio]:checked').size() == 0) {
-              $(this).addClass('term-reference-tree-collapsed');
-              $(this).siblings('ul').hide();
-            }
-          });
-        }
         
         //On page load, check if the user wants a track list. If so, add the 
         //currently selected items to it.

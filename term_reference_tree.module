@@ -77,8 +77,8 @@ function term_reference_tree_theme() {
  * @return
  *   A nested array of the term's child objects.  
  */
-function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter, $label) {
-  $terms = _term_reference_tree_get_children($tid, $vid);
+function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter, $label, $default = array()) {
+  $terms = _term_reference_tree_get_children($tid, $vid, $default);
   
   $result = array();
 
@@ -86,9 +86,13 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
     foreach($allowed as $k => $v) {
       if (array_key_exists($k, $terms)) {
         $term =& $terms[$k];
-        $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
+        $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label, $default);
         if (is_array($children)) {
           $term->children = $children;
+          $term->children_selected = _term_reference_tree_children_selected($term, $default); 
+        } 
+        else {
+          $term->children_selected = FALSE;
         }
         $term->TEST = $label;
         array_push($result, $term);
@@ -98,9 +102,13 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
   else {
     foreach($terms as &$term) {
       if ($filter == '' || array_key_exists($term->tid, $allowed)) {
-        $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label);
+        $children = _term_reference_tree_get_term_hierarchy($term->tid, $vid, $allowed, $filter, $label, $default);
         if (is_array($children)) {
           $term->children = $children;
+          $term->children_selected = _term_reference_tree_children_selected($term, $default);        
+        } 
+        else {
+          $term->children_selected = FALSE;
         }
         $term->TEST = $label;
         array_push($result, $term);
@@ -125,16 +133,29 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
 function _term_reference_tree_get_children($tid, $vid) {
   $select = db_select('taxonomy_term_data', 'd');
   $select->join('taxonomy_term_hierarchy', 'h', 'd.tid = h.tid');
-  $result = $select->fields('d', array('tid'))
+  $result = $select->fields('d', array('tid', 'name'))
     ->condition('d.vid', $vid, '=')
     ->condition('h.parent', $tid, '=')
     ->orderBy('weight')
     ->orderBy('name')
     ->orderBy('tid')
-    ->execute()
-    ->fetchCol(0);
+    ->execute();
 
-  return taxonomy_term_load_multiple($result);
+  $terms = array();
+  while($term = $result->fetchAssoc()) {
+    $terms[$term['tid']] = (object) $term;
+  }
+
+  return $terms;
+}
+
+function _term_reference_tree_children_selected($terms, $default) {
+  foreach($terms->children as $term) {
+    if(isset($default[$term->tid]) || $term->children_selected) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function _term_reference_tree_get_parent($tid) {

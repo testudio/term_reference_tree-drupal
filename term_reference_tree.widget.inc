@@ -233,10 +233,12 @@ function term_reference_tree_process_checkbox_tree($element, $form_state) {
     if ($element['#filter_view'] != '') {
       $allowed = _term_reference_tree_get_allowed_values($element['#filter_view']);
     }
+    
+    $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
 
     if (empty($element['#options'])) {
-      $element['#options_tree'] = _term_reference_tree_get_term_hierarchy($element['#parent_tid'], $element['#vocabulary'], $allowed, $element['#filter_view'], '');
-
+      $element['#options_tree'] = _term_reference_tree_get_term_hierarchy($element['#parent_tid'], $element['#vocabulary'], $allowed, $element['#filter_view'], '', $value);
+      
       $required = $element['#required'];
       if ($element['#max_choices'] == 1 && !$required) {
         array_unshift($element['#options_tree'], (object) array(
@@ -249,7 +251,6 @@ function term_reference_tree_process_checkbox_tree($element, $form_state) {
       $element['#options'] = _term_reference_tree_get_options($element['#options_tree'], $allowed, $element['#filter_view']);
     }
 
-    $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
     $terms = !empty($element['#options_tree']) ? $element['#options_tree'] : array();
     $max_choices = !empty($element['#max_choices']) ? $element['#max_choices'] : 1;
     if (array_key_exists('#select_parents', $element) && $element['#select_parents']) {
@@ -261,7 +262,7 @@ function term_reference_tree_process_checkbox_tree($element, $form_state) {
 
     $tree = new stdClass;
     $tree->children = $terms;
-    $element[] = _term_reference_tree_build_level($element, $tree, $form_state, $value, $max_choices);
+    $element[] = _term_reference_tree_build_level($element, $tree, $form_state, $value, $max_choices, array(), 1);
 
     //Add a track list element?
     $track_list = !empty($element['#track_list']) && $element['#track_list'];
@@ -304,7 +305,7 @@ function theme_checkbox_tree($variables) {
   }
 
   if (array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
-    $attributes['class'][] = "term-reference-tree-start-minimized";
+    $attributes['class'][] = "term-reference-tree-collapsed";
   }
 
   $add_track_list = FALSE;
@@ -330,8 +331,9 @@ function theme_checkbox_tree($variables) {
 function theme_checkbox_tree_level($variables) {
   $element = $variables['element'];
   $sm = '';
-  if (array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
-    $sm = " term-reference-tree-start-minimized";
+  if (array_key_exists('#level_start_minimized', $element) && $element['#level_start_minimized']) {
+    $collapsed = 
+    $sm = " style='display: none;'";
   }
 
   $max_choices = 0;
@@ -339,7 +341,7 @@ function theme_checkbox_tree_level($variables) {
     $max_choices = $element['#max_choices'];
   }
 
-  $output = "<ul class='term-reference-tree-level$sm'>";
+  $output = "<ul class='term-reference-tree-level '$sm>";
   $children = element_children($element);
   foreach($children as $child) {
     $output .= "<li>";
@@ -361,9 +363,10 @@ function theme_checkbox_tree_item($variables) {
   $children = element_children($element);
   $output = "";
   
+  $sm = $element['#level_start_minimized'] ? ' term-reference-tree-collapsed' : '';
+  
   if (is_array($children) && count($children) > 1) {
-    $output .= "<div class='term-reference-tree-button'></div>";
-
+    $output .= "<div class='term-reference-tree-button$sm'></div>";
   }
   elseif (!$element['#leaves_only']) {
     $output .= "<div class='no-term-reference-tree-button'></div>";
@@ -599,7 +602,7 @@ function _term_reference_tree_get_allowed_values($filter) {
  *   A completed checkbox_tree_item element, which contains a checkbox and
  *   possibly a checkbox_tree_level element as well.
  */
-function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids) {
+function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids, $parent, $depth) {
   $start_minimized = FALSE;
   if (array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
@@ -609,20 +612,28 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
   if (array_key_exists('#leaves_only', $element)) {
     $leaves_only = $element['#leaves_only'];
   }
-  
+
+  $t = null;
+  if(module_exists('locale')) {
+    $t = taxonomy_term_load($term->tid);
+    $term_name = entity_label('taxonomy_term', $t);
+  } else {
+    $term_name = $term->name;
+  }
   $container = array(
     '#type' => 'checkbox_tree_item',
     '#max_choices' => $max_choices,
-    '#start_minimized' => $start_minimized,
     '#leaves_only' => $leaves_only,
-    '#term_name' => entity_label('taxonomy_term', $term),
+    '#term_name' => $term_name,
+    '#level_start_minimized' => FALSE,
+    '#depth' => $depth,
   );
 
   if (!$element['#leaves_only'] || count($term->children) == 0) {
     $name = "edit-" . str_replace('_', '-', $element['#field_name']);
     $e = array(
       '#type' => ($max_choices == 1) ? 'radio' : 'checkbox',
-      '#title' => entity_label('taxonomy_term', $term),
+      '#title' => $term_name,
       '#on_value' => $term->tid,
       '#off_value' => 0,
       '#return_value' => $term->tid,
@@ -633,7 +644,9 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
     );
 
     if ($element['#token_display'] != '' && module_exists('token')) {
-      $t = taxonomy_term_load($term->tid);
+      if(!$t) {
+        $t = taxonomy_term_load($term->tid);
+      }
       $e['#title'] = token_replace($element['#token_display'], array('term' => $t), array('clear' => TRUE));
     }
 
@@ -646,19 +659,20 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
   else {
     $e = array(
       '#type' => 'checkbox_tree_label',
-      '#value' => entity_label('taxonomy_term', $term),
+      '#value' => $term_name,
     );
   }
 
-  $container[$term->tid] = $e;
-  
+
+  $container[$term->tid] = $e;  
 
   if (property_exists($term, 'children') && count($term->children) > 0) {
     $parents = $parent_tids;
     $parents[] = $term->tid;
-    $container[$term->tid . '-children'] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices, $parents);
+    $container[$term->tid . '-children'] = _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices, $parents, $depth+1);
+    $container['#level_start_minimized'] = $container[$term->tid . '-children']['#level_start_minimized'];
   }
-
+  
   return $container;
 }
 
@@ -683,7 +697,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
  * @return
  *   A completed checkbox_tree_level element.
  */
-function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids = array()) {
+function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids, $depth) {
   $start_minimized = FALSE;
   if (array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
@@ -697,12 +711,15 @@ function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$val
   $container = array(
     '#type' => 'checkbox_tree_level',
     '#max_choices' => $max_choices,
-    '#start_minimized' => $start_minimized,
     '#leaves_only' => $leaves_only,
+    '#start_minimized' => $start_minimized,
+    '#depth' => $depth,
   );
 
+  $container['#level_start_minimized'] = $depth > 1 && $element['#start_minimized'] && !($term->children_selected);
+  
   foreach($term->children as $t) {
-    $container[$t->tid] = _term_reference_tree_build_item($element, $t, $form_state, $value, $max_choices, $parent_tids);
+    $container[$t->tid] = _term_reference_tree_build_item($element, $t, $form_state, $value, $max_choices, $parent_tids, $container, $depth);
   }
   
   return $container;
