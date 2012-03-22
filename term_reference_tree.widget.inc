@@ -19,6 +19,7 @@ function term_reference_tree_field_widget_info() {
         'select_parents' => 0,
         'track_list' => 0,
         'token_display' => '',
+        'parent_term_id' => '',
       ),
     ),
   );
@@ -148,8 +149,7 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
         '#type' => 'hidden',
         '#value' => $settings['token_display'],
       );
-    }
-
+    }    
     
     $form['track_list'] = array(
       '#type' => 'checkbox',
@@ -160,6 +160,15 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       '#default_value' => $settings['track_list'],
       '#return_value' => 1,
     );
+    
+    $form['parent_term_id'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Parent Term ID'),
+      '#description' => t("Only show items underneath the taxonomy term with this ID number.  Leave this field blank to not limit terms by parent."),
+      '#default_value' => $settings['parent_term_id'],
+      '#size' => 8,
+      '#return_value' => 1,
+    );    
   }
 
   return $form;
@@ -466,7 +475,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#filter_view'] = module_exists('views') ? $settings['filter_view'] : '';
       $element['#select_parents'] = $settings['select_parents'];
       $element['#track_list'] = $settings['track_list'];
-      $element['#parent_tid'] = $field['settings']['allowed_values'][0]['parent'];
+      $element['#parent_tid'] = $settings['parent_term_id'] || $field['settings']['allowed_values'][0]['parent'];
       $element['#vocabulary'] = $voc->vid;
       $element['#token_display'] = module_exists('token') ? $settings['token_display'] : '';
       break;
