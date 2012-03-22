@@ -547,7 +547,10 @@ function _term_reference_tree_get_allowed_values($filter) {
     $view = views_get_view($viewname);
     if (is_object($view)) {
       if ($view->access($displayname)) {
+        // Save the page title first, since execute_display() will reset this to the display title.
+        $title = drupal_get_title();
         $view->execute_display($displayname);
+        $title = drupal_set_title($title, PASS_THROUGH);
         foreach($view->result as $item) {
           $allowed[$item->tid] = true;
         }

@@ -123,7 +123,6 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
  *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
  */
 function _term_reference_tree_get_children($tid, $vid) {
-  //Should this use the new DB layer?
   $select = db_select('taxonomy_term_data', 'd');
   $select->join('taxonomy_term_hierarchy', 'h', 'd.tid = h.tid');
   $result = $select->fields('d', array('tid'))
