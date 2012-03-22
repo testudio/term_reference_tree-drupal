@@ -138,7 +138,7 @@ function _term_reference_tree_get_children($tid, $vid) {
 }
 
 function _term_reference_tree_get_parent($tid) {
-  $q = db_query("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid limit 1", array(':tid'  => $tid));
+  $q = db_query_range("select h.parent from {taxonomy_term_hierarchy} h where h.tid = :tid", 0, 1, array(':tid'  => $tid));
 
   $t = 0;
   foreach($q as $term) {
