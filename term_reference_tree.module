@@ -131,6 +131,11 @@ function _term_reference_tree_get_term_hierarchy($tid, $vid, &$allowed, $filter,
  *   An array of taxonomy terms, each in the form array('tid' => $tid, 'name' => $name)
  */
 function _term_reference_tree_get_children($tid, $vid) {
+  // DO NOT LOAD TAXONOMY TERMS HERE
+  // Taxonomy terms take a lot of time and memory to load, and this can be
+  // very bad on large vocabularies.  Instead, we load the term as necessary
+  // in cases where it's needed (such as using tokens or when the locale
+  // module is enabled).
   $select = db_select('taxonomy_term_data', 'd');
   $select->join('taxonomy_term_hierarchy', 'h', 'd.tid = h.tid');
   $result = $select->fields('d', array('tid', 'name'))
