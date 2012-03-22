@@ -530,6 +530,7 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
   }
   
   if ($element['#required'] && empty($value)) {
+    // The title is already check_plained so it's appropriate to use !.
     form_error($element, t('!name field is required.', array('!name' => $element['#title'])));
   }
 
