@@ -395,7 +395,18 @@ function theme_checkbox_tree_label($variables) {
  */
 function theme_checkbox_tree_track_list($variables) {
   //Should the label be singular or plural? Depends on cardinality of term field.
-  $nothingselected = t('[Nothing selected]');
+  static $nothingselected;
+  
+  if(!$nothingselected) {
+    $nothingselected = t('[Nothing selected]');
+    //Add the "Nothing selected" text. To style it, replace it with whatever you want.
+    //Could do this with a file instead.
+    drupal_add_js(
+      'var termReferenceTreeNothingSelectedText = "' . $nothingselected . '";',
+      'inline'
+    );
+  }
+  
   $label = format_plural(
       $variables['element']['#max_choices'], 
       'Selected item (click the item to uncheck it)',
@@ -407,12 +418,7 @@ function theme_checkbox_tree_track_list($variables) {
        <ul class="term-reference-tree-track-list"><li class="term_ref_tree_nothing_message">'.$nothingselected.'</li></ul>
      </div>';
      
-  //Add the "Nothing selected" text. To style it, replace it with whatever you want.
-  //Could do this with a file instead.
-  drupal_add_js(
-      'var termReferenceTreeNothingSelectedText = "' . $nothingselected . '";',
-      'inline'
-  );
+
   return $output;
 }
 
