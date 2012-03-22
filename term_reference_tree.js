@@ -58,10 +58,10 @@
           labels.each(function(index) {
             label_element = $(labels[index]);
             addItemToTrackList(
-                track_list_container,         //Where to add new item.
-                label_element.html(),         //Text of new item.
-                $(label_element).attr('for'), //Id of control new item is for.
-                input_type                    //checkbox or radio
+              track_list_container,         //Where to add new item.
+              label_element.html(),         //Text of new item.
+              $(label_element).attr('for'), //Id of control new item is for.
+              input_type                    //checkbox or radio
             );
           }); //End labels.each
           
@@ -100,10 +100,10 @@
               //Control checked - add item to the track list.
               label_element = event_target.next();
               addItemToTrackList(
-                  track_list_container,         //Where to add new item.
-                  label_element.html(),         //Text of new item.
-                  $(label_element).attr('for'), //Id of control new item is for.
-                  input_type                    //checkbox or radio
+                track_list_container,         //Where to add new item.
+                label_element.html(),         //Text of new item.
+                $(label_element).attr('for'), //Id of control new item is for.
+                input_type                    //checkbox or radio
               );
             }
             else {
@@ -251,8 +251,24 @@
 
     if(checkbox) {
       if(item.hasClass('select-parents')) {
+        var track_list_container = item.find('.term-reference-tree-track-list');
+        var input_type =
+            ( item.has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
+            
         if(checkbox.attr('checked')) {
-          checkbox.parents('ul.term-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').attr('checked', checkbox.attr('checked'));
+          checkbox.parents('ul.term-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').each(function() {
+            $(this).attr('checked', checkbox.attr('checked'));
+            
+            if(track_list_container) {
+              label_element = $(this).next();
+              addItemToTrackList(
+                track_list_container,         //Where to add new item.
+                label_element.html(),         //Text of new item.
+                $(label_element).attr('for'), //Id of control new item is for.
+                input_type                    //checkbox or radio
+              );
+            }
+          });
         }
       }
     }
