@@ -17,6 +17,7 @@ function term_reference_tree_field_widget_info() {
         'leaves_only' => 0,
         'filter_view' => '',
         'select_parents' => 0,
+        'cascading_selection' => 0,
         'track_list' => 0,
         'token_display' => '',
         'parent_term_id' => '',
@@ -102,6 +103,15 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
       '#description' => t("When turned on, this option causes the widget to automatically select the ancestors of all selected items. In Leaves Only mode, the parents will be added invisibly to the selected value.  <em>This option is only valid if an unlimited number of values can be selected.</em>"),
       '#default_value' => $settings['select_parents'],
       '#element_validate' => array('_term_reference_tree_select_parents_validate'),
+      '#return_value' => 1,
+    );
+
+    $form['cascading_selection'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Cascading selection'),
+      '#description' => t('On parent selection, automatically select children if none were selected. Some may then be manually unselected. In the same way, on parent unselection, unselect children if all were selected. <em>This option is only valid if an unlimited number of values can be selected.</em>'),
+      '#default_value' => $settings['cascading_selection'],
+      '#element_validate' => array('_term_reference_tree_cascading_selection_validate'),
       '#return_value' => 1,
     );
 
@@ -231,6 +241,17 @@ function _term_reference_tree_select_parents_validate($element, &$form_state) {
 }
 
 /**
+ * Makes sure that cardinality is unlimited if cascading selection is enabled.
+ */
+function _term_reference_tree_cascading_selection_validate($element, &$form_state) {
+  if ($form_state['values']['instance']['widget']['settings']['cascading_selection'] == 1 && $form_state['values']['field']['cardinality'] != -1) {
+    // This is pretty wonky syntax for the field name in form_set_error, but it's
+    // correct.
+    form_set_error('field][cardinality', t('You must select an Unlimited number of values if Cascading selection is enabled.'));
+  }
+}
+
+/**
  * Process the checkbox_tree widget.
  * 
  * This function processes the checkbox_tree widget.
@@ -325,6 +346,10 @@ function theme_checkbox_tree($variables) {
 
   if (array_key_exists('#start_minimized', $element) && $element['#start_minimized']) {
     $attributes['class'][] = "term-reference-tree-collapsed";
+  }
+
+  if (array_key_exists('#cascading_selection', $element) && $element['#cascading_selection']) {
+    $attributes['class'][] = "term-reference-tree-cascading-selection";
   }
 
   $add_track_list = FALSE;
@@ -485,6 +510,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#leaves_only'] = $settings['leaves_only'];
       $element['#filter_view'] = module_exists('views') ? $settings['filter_view'] : '';
       $element['#select_parents'] = $settings['select_parents'];
+      $element['#cascading_selection'] = $settings['cascading_selection'];
       $element['#track_list'] = $settings['track_list'];
       $element['#parent_tid'] = $settings['parent_term_id'] || $field['settings']['allowed_values'][0]['parent'];
       $element['#vocabulary'] = $voc->vid;

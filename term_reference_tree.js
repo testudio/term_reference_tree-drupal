@@ -77,7 +77,7 @@
           });
           
           //Change track list when controls are clicked.
-          $(this).find('.form-' + input_type).click(function(event){
+          $(this).find('.form-' + input_type).change(function(event){
             //Remove the "nothing selected" message if showing - add it later if needed.
             removeNothingSelectedMessage(track_list_container);
             var event_target = $(event.target);
@@ -102,6 +102,31 @@
           }); //End process checkbox changes.
         } //End Want a track list.
         
+        //On page load, check if the user wants a cascading selection.
+        if($(this).hasClass('term-reference-tree-cascading-selection')) {
+
+          //Check children when checkboxes are clicked.
+          $(this).find('.form-checkbox').change(function(event) {
+            var event_target = $(event.target);
+            var control_id = event_target.attr('id');
+            var children = event_target.parent().next().children().children('div.form-type-checkbox').children('input[id^="' + control_id + '-children"]');
+            if(event_target.attr('checked')) {
+              //Checkbox checked - check children if none were checked.
+              if(!$(children).filter(':checked').length) {
+                $(children).click().trigger('change');
+              }
+            }
+            else {
+              //Checkbox unchecked. Uncheck children if all were checked.
+              if(!$(children).not(':checked').length) {
+                $(children).click().trigger('change');
+              }
+            }
+
+          });
+          //End process checkbox changes.
+        } //End Want a cascading checking.
+
       });
     }
   };
