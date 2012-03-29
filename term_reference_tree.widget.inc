@@ -28,51 +28,6 @@ function term_reference_tree_field_widget_info() {
 }
 
 /**
- * Themes the term tree display (as opposed to the select widget).
- */
-function theme_term_tree_list($variables) {
-  $element =& $variables['element'];
-  $data =& $element['#data'];
-
-  $tree = array();
-
-  # For each selected term:
-  foreach($data as $item) {
-    # Loop if the term ID is not zero:
-    $values = array();
-    $tid = $item['tid'];
-    $original_tid = $tid;
-    while($tid != 0) {
-      # Unshift the term onto an array
-      array_unshift($values, $tid);
-      
-      # Repeat with parent term
-      $tid = _term_reference_tree_get_parent($tid);
-    }
-    
-    $current =& $tree;
-    # For each term in the above array:
-    foreach($values as $tid) {
-      # current[children][term_id] = new array
-      if (!isset($current['children'][$tid])) {
-        $current['children'][$tid] = array('selected' => FALSE);
-      }
-      
-      # If this is the last value in the array, tree[children][term_id][selected] = true
-      if ($tid == $original_tid) {
-        $current['children'][$tid]['selected'] = TRUE;
-      }
-
-      $current['children'][$tid]['tid'] = $tid;
-      $current =& $current['children'][$tid];
-    }
-  }
-  
-  return _term_reference_tree_output_list_level($element, $tree);
-}
-
-
-/**
  * Implements hook_field_widget_settings_form().
  */
 function term_reference_tree_field_widget_settings_form($field, $instance) {
@@ -195,6 +150,53 @@ function term_reference_tree_field_widget_settings_form($field, $instance) {
 }
 
 /**
+ * Themes the term tree display (as opposed to the select widget).
+ */
+function theme_term_tree_list($variables) {
+  $element =& $variables['element'];
+  $data =& $element['#data'];
+
+  $tree = array();
+
+  # For each selected term:
+  foreach($data as $item) {
+    # Loop if the term ID is not zero:
+    $values = array();
+    $tid = $item['tid'];
+    $original_tid = $tid;
+    while($tid != 0) {
+      # Unshift the term onto an array
+      array_unshift($values, $tid);
+      
+      # Repeat with parent term
+      $tid = _term_reference_tree_get_parent($tid);
+    }
+    
+    $current =& $tree;
+    # For each term in the above array:
+    foreach($values as $tid) {
+      # current[children][term_id] = new array
+      if (!isset($current['children'][$tid])) {
+        $current['children'][$tid] = array('selected' => FALSE);
+      }
+      
+      # If this is the last value in the array, tree[children][term_id][selected] = true
+      if ($tid == $original_tid) {
+        $current['children'][$tid]['selected'] = TRUE;
+      }
+
+      $current['children'][$tid]['tid'] = $tid;
+      $current =& $current['children'][$tid];
+    }
+  }
+  
+  $output = "<div class='term-tree-list'>";
+  $output .= _term_reference_tree_output_list_level($element, $tree);
+  $output .= "</div>";
+  return $output;
+}
+
+/**
  * Helper function to output a single level of the term reference tree
  * display.
  */
@@ -205,9 +207,11 @@ function _term_reference_tree_output_list_level(&$element, &$tree) {
     $tokens_selected = $settings['token_display_selected'];
     $tokens_unselected = ($settings['token_display_unselected'] != '') ? $settings['token_display_unselected'] : $tokens_selected;
 
+    $taxonomy_term_info = entity_get_info('taxonomy_term');
     foreach($tree['children'] as &$item) {
-      $term = taxonomy_term_load($item['tid']);
-      $uri = taxonomy_term_uri($term);
+      $term = $taxonomy_term_info['load hook']($item['tid']);
+      $uri = $taxonomy_term_info['uri callback']($term);
+      $uri['options']['html'] = TRUE;
       $class = $item['selected'] ? 'selected' : 'unselected';
       $output .= "<li class='$class'>";
       if ($tokens_selected != '' && module_exists('token')) {
@@ -215,7 +219,7 @@ function _term_reference_tree_output_list_level(&$element, &$tree) {
         $output .= token_replace($replace, array('term' => $term), array('clear' => TRUE));
       }
       else {
-        $output .= l(entity_label('taxonomy_term', $term), $uri['path'], array('html' => true));
+        $output .= l(entity_label('taxonomy_term', $term), $uri['path'], $uri['options']);
       }
       if (isset($item['children'])) {
         $output .= _term_reference_tree_output_list_level($element, $item);
@@ -471,7 +475,7 @@ function theme_checkbox_tree_track_list($variables) {
 
 
 /**
- * Implements hook_widget_field_form().
+ * Implements hook_field_widget_form().
  */
 function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $settings = $instance['widget']['settings'];

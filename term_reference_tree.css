@@ -113,14 +113,18 @@
  * Styles for display element
  */
 
-.field-widget-term-reference-tree .selected {
+.term-tree-list .selected {
   font-weight: bold;
 }
 
-.field-widget-term-reference-tree .unselected {
+.term-tree-list .unselected {
   font-weight: normal;
 }
 
-.field-widget-term-reference-tree ul {
+.term-tree-list ul {
   margin-top: 0;
+}
+
+.field-type-taxonomy-term-reference ul.links .term-tree-list ul.term li {
+  float: none;
 }
