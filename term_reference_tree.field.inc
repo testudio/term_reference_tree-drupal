@@ -25,12 +25,14 @@ function term_reference_tree_field_formatter_view($entity_type, $entity, $field,
 
   switch ($display['type']) {
     case 'term_reference_tree':
-      $element[] = array(
-        '#theme' => 'term_tree_list',
-        '#data' => $items,
-        '#display' => $display,
-        '#attached' => array('css' => array(drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css')),
-      );
+      if (!empty($items)) {
+        $element[] = array(
+          '#theme' => 'term_tree_list',
+          '#data' => $items,
+          '#display' => $display,
+          '#attached' => array('css' => array(drupal_get_path('module', 'term_reference_tree') . '/term_reference_tree.css')),
+        );
+      }
       break;
   }
 
