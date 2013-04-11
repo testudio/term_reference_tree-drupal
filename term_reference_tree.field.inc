@@ -66,7 +66,7 @@ function term_reference_tree_field_formatter_settings_form($field, $instance, $v
       '#token_types' => array('term'),
     );
   }
-  
+
   return $element;
 }
 
@@ -81,9 +81,8 @@ function term_reference_tree_field_formatter_settings_summary($field, $instance,
   $summary = '';
 
   if ($display['type'] == 'term_reference_tree') {
-    $summary = t('Uses tokens: ') . t($settings['token_display_selected'] != '' ? 'Yes' : 'No');
+    $summary = t('Uses tokens: ') . ($settings['token_display_selected'] != '' ? t('Yes') : t('No'));
   }
 
   return $summary;
 }
-
