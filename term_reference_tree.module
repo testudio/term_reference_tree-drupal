@@ -141,6 +141,7 @@ function _term_reference_tree_get_children($tid, $vid) {
   $result = $select->fields('d', array('tid', 'name'))
     ->condition('d.vid', $vid, '=')
     ->condition('h.parent', $tid, '=')
+    ->addTag('term_access')
     ->orderBy('weight')
     ->orderBy('name')
     ->orderBy('tid')
