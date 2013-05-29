@@ -551,7 +551,7 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
 
   if ($element['#max_choices'] != 1) {
     foreach ($items as $child) {
-      if (array_key_exists('#value', $child) && $child['#value'] !== 0) {
+      if (!empty($child['#value'])) {
         array_push($value, array($element['#value_key'] => $child['#value']));
 
         // If the element is leaves only and select parents is on, then automatically
@@ -571,7 +571,7 @@ function _term_reference_tree_widget_validate(&$element, &$form_state) {
     // grab the value of the first one.
     if (count($items) > 0) {
       $child = reset($items);
-      if (array_key_exists('#value', $child) && $child['#value'] !== 0) {
+      if (!empty($child['#value'])) {
         array_push($value, array($element['#value_key'] => $child['#value']));
       }
     }
