@@ -280,7 +280,7 @@ function term_reference_tree_process_checkbox_tree($element, $form_state) {
     $value = !empty($element['#default_value']) ? $element['#default_value'] : array();
 
     if (empty($element['#options'])) {
-      $element['#options_tree'] = _term_reference_tree_get_term_hierarchy($element['#parent_tid'], $element['#vocabulary'], $allowed, $element['#filter_view'], '', $value);
+      $element['#options_tree'] = _term_reference_tree_get_term_hierarchy($element['#parent_tid'], $element['#vocabulary']->vid, $allowed, $element['#filter_view'], '', $value);
 
       $required = $element['#required'];
       if ($element['#max_choices'] == 1 && !$required) {
@@ -288,8 +288,8 @@ function term_reference_tree_process_checkbox_tree($element, $form_state) {
           'tid' => '',
           'name' => 'N/A',
           'depth' => 0,
-          )
-        );
+          'vocabulary_machine_name' => $element['#vocabulary']->machine_name,
+        ));
       }
       $element['#options'] = _term_reference_tree_get_options($element['#options_tree'], $allowed, $element['#filter_view']);
     }
@@ -476,7 +476,7 @@ function theme_checkbox_tree_track_list($variables) {
  */
 function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $settings = $instance['widget']['settings'];
-  $voc = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
+  $vocabulary = taxonomy_vocabulary_machine_name_load($field['settings']['allowed_values'][0]['vocabulary']);
   $path = drupal_get_path('module', 'term_reference_tree');
   $value_key = key($field['columns']);
   $type = $instance['widget']['type'];
@@ -515,7 +515,7 @@ function term_reference_tree_field_widget_form(&$form, &$form_state, $field, $in
       $element['#cascading_selection'] = $settings['cascading_selection'];
       $element['#track_list'] = $settings['track_list'];
       $element['#parent_tid'] = $settings['parent_term_id'] ? $settings['parent_term_id'] : $field['settings']['allowed_values'][0]['parent'];
-      $element['#vocabulary'] = $voc ? $voc->vid : NULL;
+      $element['#vocabulary'] = $vocabulary;
       $element['#token_display'] = module_exists('token') ? $settings['token_display'] : '';
       break;
   }
@@ -651,7 +651,7 @@ function _term_reference_tree_get_allowed_values($filter) {
  *   A completed checkbox_tree_item element, which contains a checkbox and
  *   possibly a checkbox_tree_level element as well.
  */
-function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids, $parent, $depth) {
+function _term_reference_tree_build_item($element, $term, $form_state, $value, $max_choices, $parent_tids, $parent, $depth) {
   $start_minimized = FALSE;
   if (array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
@@ -663,7 +663,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
   }
 
   $t = NULL;
-  if (module_exists('locale')) {
+  if (module_exists('locale') && !empty($term->tid)) {
     $t = taxonomy_term_load($term->tid);
     $term_name = entity_label('taxonomy_term', $t);
   }
@@ -746,7 +746,7 @@ function _term_reference_tree_build_item(&$element, &$term, &$form_state, &$valu
  * @return
  *   A completed checkbox_tree_level element.
  */
-function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$value, $max_choices, $parent_tids, $depth) {
+function _term_reference_tree_build_level($element, $term, $form_state, $value, $max_choices, $parent_tids, $depth) {
   $start_minimized = FALSE;
   if (array_key_exists('#start_minimized', $element)) {
     $start_minimized = $element['#start_minimized'];
@@ -767,8 +767,8 @@ function _term_reference_tree_build_level(&$element, &$term, &$form_state, &$val
 
   $container['#level_start_minimized'] = $depth > 1 && $element['#start_minimized'] && !($term->children_selected);
 
-  foreach ($term->children as $t) {
-    $container[$t->tid] = _term_reference_tree_build_item($element, $t, $form_state, $value, $max_choices, $parent_tids, $container, $depth);
+  foreach ($term->children as $child) {
+    $container[$child->tid] = _term_reference_tree_build_item($element, $child, $form_state, $value, $max_choices, $parent_tids, $container, $depth);
   }
 
   return $container;

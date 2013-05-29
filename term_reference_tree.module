@@ -136,20 +136,22 @@ function _term_reference_tree_get_children($tid, $vid) {
   // very bad on large vocabularies.  Instead, we load the term as necessary
   // in cases where it's needed (such as using tokens or when the locale
   // module is enabled).
-  $select = db_select('taxonomy_term_data', 'd');
-  $select->join('taxonomy_term_hierarchy', 'h', 'd.tid = h.tid');
-  $result = $select->fields('d', array('tid', 'name'))
-    ->condition('d.vid', $vid, '=')
-    ->condition('h.parent', $tid, '=')
-    ->addTag('term_access')
-    ->orderBy('weight')
-    ->orderBy('name')
-    ->orderBy('tid')
-    ->execute();
+  $query = db_select('taxonomy_term_data', 't');
+  $query->join('taxonomy_term_hierarchy', 'h', 't.tid = h.tid');
+  $query->join('taxonomy_vocabulary', 'v', 'v.vid = t.vid');
+  $query->fields('t', array('tid', 'name'));
+  $query->addField('v', 'machine_name', 'vocabulary_machine_name');
+  $query->condition('t.vid', $vid);
+  $query->condition('h.parent', $tid);
+  $query->addTag('term_access');
+  $query->addTag('translatable');
+  $query->orderBy('t.weight');
+  $query->orderBy('t.name');
+  $results = $query->execute();
 
   $terms = array();
-  while ($term = $result->fetchAssoc()) {
-    $terms[$term['tid']] = (object) $term;
+  while ($term = $results->fetchObject()) {
+    $terms[$term->tid] = $term;
   }
 
   return $terms;
