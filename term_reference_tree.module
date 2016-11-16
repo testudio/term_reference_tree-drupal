@@ -23,6 +23,10 @@ function term_reference_tree_theme() {
       'render element' => 'element',
       'function' => 'theme_checkbox_tree_label',
     ],
+    'term_tree_list' => [
+      'render element' => 'element',
+      'function' => 'theme_term_tree_list',
+    ],
   ];
 }
 
@@ -97,7 +101,7 @@ function theme_checkbox_tree_item($variables) {
   $children = Element::children($element);
   $output = "";
 
-  $sm = ' term-reference-tree-collapsed';
+  $sm = $element['#level_start_minimized'] ? ' term-reference-tree-collapsed' : '';
 
   if (is_array($children) && count($children) > 1) {
     $output .= "<div class='term-reference-tree-button$sm'></div>";
@@ -349,4 +353,87 @@ function _term_reference_tree_build_item($element, $term, $form_state, $value, $
   }
 
   return $container;
+}
+
+/**
+ * Themes the term tree display (as opposed to the select widget).
+ */
+function theme_term_tree_list($variables) {
+  $element = &$variables['element'];
+  $data = &$element['#data'];
+
+  $tree = [];
+
+  // For each selected term:
+  foreach ($data as $item) {
+    // Loop if the term ID is not zero:
+    $values = [];
+    $tid = $item['target_id'];
+    $original_tid = $tid;
+    while ($tid != 0) {
+      // Unshift the term onto an array
+      array_unshift($values, $tid);
+
+      // Repeat with parent term
+      $tid = _term_reference_tree_get_parent($tid);
+    }
+
+    $current = &$tree;
+    // For each term in the above array:
+    foreach ($values as $tid) {
+      // current[children][term_id] = new array
+      if (!isset($current['children'][$tid])) {
+        $current['children'][$tid] = ['selected' => FALSE];
+      }
+
+      // If this is the last value in the array, tree[children][term_id][selected] = true
+      if ($tid == $original_tid) {
+        $current['children'][$tid]['selected'] = TRUE;
+      }
+
+      $current['children'][$tid]['tid'] = $tid;
+      $current = &$current['children'][$tid];
+    }
+  }
+  $output = "<div class='term-tree-list'>";
+  $output .= _term_reference_tree_output_list_level($element, $tree);
+  $output .= "</div>";
+  return $output;
+}
+
+/**
+ * Helper function to get the parent of tid.
+ */
+function _term_reference_tree_get_parent($tid) {
+  $q = db_query_range("SELECT h.parent FROM {taxonomy_term_hierarchy} h WHERE h.tid = :tid", 0, 1, [':tid' => $tid]);
+  $t = 0;
+  foreach ($q as $term) {
+    $t = $term->parent;
+  }
+  return $t;
+}
+
+/**
+ * Helper function to output a single level of the term reference tree
+ * display.
+ */
+function _term_reference_tree_output_list_level(&$element, &$tree) {
+  $output = '';
+  if (isset($tree['children']) && is_array($tree['children']) && count($tree['children']) > 0) {
+    $output = '<ul class="term">';
+    foreach ($tree['children'] as &$item) {
+      $term = \Drupal\taxonomy\Entity\Term::load($item['tid']);
+      $uri['options']['html'] = TRUE;
+      $url = $term->toUrl();
+      $class = $item['selected'] ? 'selected' : 'unselected';
+      $output .= "<li class='$class'>";
+      $output .= \Drupal::service('link_generator')->generate($term->label(), $url);
+      if (isset($item['children'])) {
+        $output .= _term_reference_tree_output_list_level($element, $item);
+      }
+      $output .= "</li>";
+    }
+    $output .= '</ul>';
+  }
+  return $output;
 }

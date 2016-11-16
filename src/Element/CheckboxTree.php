@@ -30,7 +30,7 @@ class CheckboxTree extends FormElement {
         [$class, 'preRenderCompositeFormElement'],
       ],
       '#default_value' => [],
-      '#attached' => ['library' => ['term_reference_tree/term_reference_tree']],
+      '#attached' => ['library' => ['term_reference_tree/term_reference_tree_js', 'term_reference_tree/term_reference_tree_css']],
       '#theme' => 'checkbox_tree',
     ];
   }

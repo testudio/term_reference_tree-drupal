@@ -125,6 +125,6 @@
   margin-top: 0;
 }
 
-.field-type-taxonomy-term-reference ul.links .term-tree-list ul.term li {
+.field--type-entity-reference ul.links .term-tree-list ul.term li {
   float: none;
 }
