@@ -422,16 +422,18 @@ function _term_reference_tree_output_list_level(&$element, &$tree) {
   if (isset($tree['children']) && is_array($tree['children']) && count($tree['children']) > 0) {
     $output = '<ul class="term">';
     foreach ($tree['children'] as &$item) {
-      $term = \Drupal\taxonomy\Entity\Term::load($item['tid']);
-      $uri['options']['html'] = TRUE;
-      $url = $term->toUrl();
-      $class = $item['selected'] ? 'selected' : 'unselected';
-      $output .= "<li class='$class'>";
-      $output .= \Drupal::service('link_generator')->generate($term->label(), $url);
-      if (isset($item['children'])) {
-        $output .= _term_reference_tree_output_list_level($element, $item);
+      if(isset($item['tid'])) {
+        $term = \Drupal\taxonomy\Entity\Term::load($item['tid']);
+        $url = $term->toUrl();
+        $uri['options']['html'] = TRUE;
+        $class = $item['selected'] ? 'selected' : 'unselected';
+        $output .= "<li class='$class'>";
+        $output .= \Drupal::service('link_generator')->generate($term->label(), $url);
+        if (isset($item['children'])) {
+          $output .= _term_reference_tree_output_list_level($element, $item);
+        }
+        $output .= "</li>";
       }
-      $output .= "</li>";
     }
     $output .= '</ul>';
   }
