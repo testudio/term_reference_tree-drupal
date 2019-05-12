@@ -34,6 +34,7 @@ function term_reference_tree_theme() {
  * Returns HTML for a checkbox_tree form element.
  */
 function theme_checkbox_tree($variables) {
+
   $element = $variables['element'];
   $element['#children'] = drupal_render_children($element);
 
@@ -51,17 +52,28 @@ function theme_checkbox_tree($variables) {
     $attributes['class'][] = "term-reference-tree-collapsed";
   }
 
-  if (array_key_exists('#cascading_selection', $element) && $element['#cascading_selection']) {
+  if (array_key_exists('#track_list', $element) && $element['#track_list']) {
+    $attributes['class'][] = "term-reference-tree-track-list-shown";
+  }
+
+  if(!empty($variables['element']['#select_parents'])) {
+    $attributes['class'][] = "term-reference-tree-select-parents";
+  }
+
+  if($variables['element']['#cascading_selection'] != \Drupal\term_reference_tree\Plugin\Field\FieldWidget\TermReferenceTree::CASCADING_SELECTION_NONE) {
     $attributes['class'][] = "term-reference-tree-cascading-selection";
   }
 
-  if (array_key_exists('#track_list', $element) && $element['#track_list']) {
-    $attributes['class'][] = "term-reference-tree-track-list-shown";
+  if($variables['element']['#cascading_selection'] == \Drupal\term_reference_tree\Plugin\Field\FieldWidget\TermReferenceTree::CASCADING_SELECTION_SELECT) {
+    $attributes['class'][] = "term-reference-tree-cascading-selection-mode-select";
+  } else if($variables['element']['#cascading_selection'] == \Drupal\term_reference_tree\Plugin\Field\FieldWidget\TermReferenceTree::CASCADING_SELECTION_DESELECT) {
+    $attributes['class'][] = "term-reference-tree-cascading-selection-mode-deselect";
   }
 
   if (!empty($element['#attributes']['class'])) {
     $attributes['class'] = array_merge($attributes['class'], $element['#attributes']['class']);
   }
+
   return
     '<div' . new \Drupal\Core\Template\Attribute($attributes) . '>'
     . (!empty($element['#children']) ? $element['#children'] : '')
@@ -307,13 +319,15 @@ function _term_reference_tree_build_item($element, $term, $form_state, $value, $
   else {
     $term_name = $term->name;
   }
+
   $container = array(
     '#type' => 'checkbox_tree_item',
     '#max_choices' => $max_choices,
     '#leaves_only' => $leaves_only,
     '#term_name' => $term_name,
     '#level_start_minimized' => FALSE,
-    '#depth' => $depth,
+    '#select_parents' => $element['#select_parents'],
+    '#depth' => $depth
   );
 
   if (!$element['#leaves_only'] || count($term->children) == 0) {

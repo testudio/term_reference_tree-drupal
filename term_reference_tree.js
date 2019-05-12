@@ -18,8 +18,8 @@ Drupal.behaviors.termReferenceTree = {
     });
     */
 
+    $('.term-reference-tree', context).once('term-reference-tree').each(function() {
 
-    $('.term-reference-tree', context).once('term-reference-tree', function() {
       // On page load, check whether the maximum number of choices is already selected.
       // If so, disable the other options.
       var tree = $(this);
@@ -28,6 +28,11 @@ Drupal.behaviors.termReferenceTree = {
         checkMaxChoices(tree, $(this));
       });
 
+      //On page load, check if the user wants a cascading selection.
+      if($(this).hasClass('term-reference-tree-select-parents')) {
+        $(this).find('.form-checkbox').parent().addClass('select-parents');
+      }
+
       //On page load, check if the user wants a track list. If so, add the
       //currently selected items to it.
       if($(this).hasClass('term-reference-tree-track-list-shown')) {
@@ -35,7 +40,7 @@ Drupal.behaviors.termReferenceTree = {
 
         //Var to track whether using checkboxes or radio buttons.
         var input_type =
-          ( $(this).has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
+          ( $(this).has('input[type=checkbox]').length > 0 ) ? 'checkbox' : 'radio';
 
         //Find all the checked controls.
         var checked_controls = $(this).find('input[type=' + input_type + ']:checked');
@@ -108,25 +113,28 @@ Drupal.behaviors.termReferenceTree = {
 
       //On page load, check if the user wants a cascading selection.
       if($(this).hasClass('term-reference-tree-cascading-selection')) {
+        var mode_select = $(this).hasClass('term-reference-tree-cascading-selection-mode-select');
+        var mode_deselect = $(this).hasClass('term-reference-tree-cascading-selection-mode-deselect');
 
         //Check children when checkboxes are clicked.
         $(this).find('.form-checkbox').change(function(event) {
           var event_target = $(event.target);
+          var event_target_checked = event_target.is(':checked');
           var control_id = event_target.attr('id');
-          var children = event_target.parent().next().children().children('div.form-type-checkbox').children('input[id^="' + control_id + '-children"]');
-          if(event_target.attr('checked')) {
-            //Checkbox checked - check children if none were checked.
-            if(!$(children).filter(':checked').length) {
-              $(children).click().trigger('change');
-            }
-          }
-          else {
-            //Checkbox unchecked. Uncheck children if all were checked.
-            if(!$(children).not(':checked').length) {
-              $(children).click().trigger('change');
-            }
-          }
+          var children = event_target.parent().next().children().find('> :not(ul) > input[id^="' + control_id + '-children"]');
 
+          if (!mode_select && !mode_deselect) {
+            if(event_target_checked) {
+              $(children).filter(':not(:checked)').click().trigger('change');
+            }
+            else {
+              $(children).filter(':checked').click().trigger('change');
+            }
+          } else if (mode_select && event_target_checked) {
+            $(children).filter(':not(:checked)').click().trigger('change');
+          } else if (mode_deselect && !event_target_checked) {
+            $(children).filter(':checked').click().trigger('change');
+          }
         });
         //End process checkbox changes.
       } //End Want a cascading checking.
@@ -161,7 +169,7 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
     var current_items = track_list_container.find('li');
 
     //If there are no items on the track list, add the new item.
-    if ( current_items.size() == 0 ) {
+    if ( current_items.length == 0 ) {
       track_list_container.append(new_item);
     }
     else {
@@ -216,13 +224,13 @@ function addItemToTrackList(track_list_container, item_text, control_id, control
 function showNothingSelectedMessage(track_list_container) {
   //Is the message there already?
   var message_showing =
-      (track_list_container.find('.term_ref_tree_nothing_message').size() != 0);
+      (track_list_container.find('.term_ref_tree_nothing_message').length != 0);
 
   //Number of real items showing.
   var num_real_items_showing =
       message_showing
-      ? track_list_container.find('li').size() - 1
-      : track_list_container.find('li').size();
+      ? track_list_container.find('li').length - 1
+      : track_list_container.find('li').length;
   if ( num_real_items_showing == 0 ) {
     //No items showing, so show the message.
     if ( ! message_showing ) {
@@ -265,22 +273,20 @@ function checkMaxChoices(item, checkbox) {
   }
 
   if(checkbox) {
-    if(item.hasClass('select-parents')) {
+    if(item.hasClass('term-reference-tree-select-parents')) {
       var track_list_container = item.find('.term-reference-tree-track-list');
-      var input_type =
-          ( item.has('input[type=checkbox]').size() > 0 ) ? 'checkbox' : 'radio';
 
-      if(checkbox.attr('checked')) {
-        checkbox.parents('ul.term-reference-tree-level li').children('div.form-item').children('input[type=checkbox]').each(function() {
-          $(this).attr('checked', checkbox.attr('checked'));
+      if(checkbox.prop('checked')) {
+        checkbox.parents('ul.term-reference-tree-level li').children('div.form-item').find('input[type=checkbox]').each(function() {
+          $(this).prop('checked', true);
 
           if(track_list_container) {
-            label_element = $(this).next();
+            var label_element = $(this).next();
             addItemToTrackList(
               track_list_container,         //Where to add new item.
               label_element.html(),         //Text of new item.
               $(label_element).attr('for'), //Id of control new item is for.
-              input_type                    //checkbox or radio
+              (item.has('input[type=checkbox]').length > 0) ? 'checkbox' : 'radio'
             );
           }
         });
