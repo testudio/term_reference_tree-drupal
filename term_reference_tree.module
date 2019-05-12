@@ -38,7 +38,7 @@ function theme_checkbox_tree($variables) {
   $element = $variables['element'];
   $element['#children'] = drupal_render_children($element);
 
-  $attributes = array();
+  $attributes = isset($element['#attributes']) ? $element['#attributes'] : [];
   if (isset($element['#id'])) {
     $attributes['id'] = $element['#id'];
   }
