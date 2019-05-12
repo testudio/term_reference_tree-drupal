@@ -79,7 +79,9 @@ class CheckboxTree extends FormElement {
     $value = [];
     $element += ['#default_value' => []];
     foreach ($element['#default_value'] as $key) {
-      $value[$key['target_id']] = $key['target_id'];
+      if(isset($key['target_id'])) {
+        $value[$key['target_id']] = $key['target_id'];
+      }
     }
     return $value;
   }
