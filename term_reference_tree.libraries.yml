@@ -4,6 +4,7 @@ term_reference_tree_js:
   dependencies:
     - core/jquery
     - core/drupal
+    - core/jquery.once
 
 term_reference_tree_css:
   css:
