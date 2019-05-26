@@ -41,6 +41,7 @@ class CheckboxTree extends FormElement {
   public static function processCheckboxTree(&$element, FormStateInterface $form_state, &$complete_form) {
     $value = is_array($element['#value']) ? $element['#value'] : [];
     $allowed = [];
+    $filter = FALSE;
     if (!empty($element['#max_choices']) && $element['#max_choices'] != '-1') {
       $element['#attached']['drupalSettings'] = [
         'term_reference_tree' => [
@@ -52,15 +53,19 @@ class CheckboxTree extends FormElement {
         ],
       ];
     }
+    if (!empty($element['#allowed'])) {
+      $allowed = $element['#allowed'];
+      $filter = TRUE;
+    }
 
     if (empty($element['#options'])) {
       $options_tree = [];
       foreach ($element['#vocabularies'] as $vocabulary) {
-        $options = _term_reference_tree_get_term_hierarchy(0, $vocabulary->id(), $allowed, '', '', $value);
+        $options = _term_reference_tree_get_term_hierarchy(0, $vocabulary->id(), $allowed, $filter, '', $value);
         $options_tree = array_merge($options_tree, $options);
       }
       $element['#options_tree'] = $options_tree;
-      $element['#options'] = _term_reference_tree_get_options($element['#options_tree'], $allowed, NULL);
+      $element['#options'] = _term_reference_tree_get_options($element['#options_tree'], $allowed, $filter);
     }
 
     $terms = !empty($element['#options_tree']) ? $element['#options_tree'] : [];
