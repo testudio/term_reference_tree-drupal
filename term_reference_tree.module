@@ -318,12 +318,15 @@ function _term_reference_tree_build_level($element, $term, $form_state, $value, 
 function _term_reference_tree_build_item($element, $term, $form_state, $value, $max_choices, $parent_tids, $parent, $depth) {
   $leaves_only = FALSE;
 
+  $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
   $t = NULL;
   if (\Drupal::moduleHandler()->moduleExists('locale') && !empty($term->tid)) {
     $t = \Drupal::entityManager()->getStorage("taxonomy_term")->load($term->tid);
-    $term_name = $t->label();
+    if ($t && $t->hasTranslation($langcode)) {
+      $term_name = $t->getTranslation($langcode)->label();
+    }
   }
-  else {
+  if (empty($term_name)) {
     $term_name = $term->name;
   }
 
@@ -451,6 +454,8 @@ function _term_reference_tree_get_parent($tid) {
  */
 function _term_reference_tree_output_list_level(&$element, &$tree) {
   $output = '';
+  $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+
   if (isset($tree['children']) && is_array($tree['children']) && count($tree['children']) > 0) {
     $output = '<ul class="term">';
     foreach ($tree['children'] as &$item) {
@@ -460,7 +465,19 @@ function _term_reference_tree_output_list_level(&$element, &$tree) {
         $uri['options']['html'] = TRUE;
         $class = $item['selected'] ? 'selected' : 'unselected';
         $output .= "<li class='$class'>";
-        $output .= \Drupal::service('link_generator')->generate($term->label(), $url);
+
+        $t = NULL;
+        $term_name = '';
+        if (\Drupal::moduleHandler()->moduleExists('locale') && !empty($term->tid)) {
+          $t = $term;
+          if ($t && $t->hasTranslation($langcode)) {
+            $term_name = $t->getTranslation($langcode)->label();
+          }
+        }
+        if (empty($term_name)) {
+          $term_name = $term->label();
+        }
+        $output .= \Drupal::service('link_generator')->generate($term_name, $url);
         if (isset($item['children'])) {
           $output .= _term_reference_tree_output_list_level($element, $item);
         }
