@@ -19,9 +19,13 @@ use Drupal\taxonomy\Entity\Vocabulary;
  * )
  */
 class TermReferenceTree extends WidgetBase {
+
   const CASCADING_SELECTION_NONE = '0';
+
   const CASCADING_SELECTION_BOTH = '1';
+
   const CASCADING_SELECTION_SELECT = '2';
+
   const CASCADING_SELECTION_DESELECT = '3';
 
   /**
@@ -29,12 +33,12 @@ class TermReferenceTree extends WidgetBase {
    */
   public static function defaultSettings() {
     return [
-      'start_minimized' => TRUE,
-      'leaves_only' => FALSE,
-      'select_parents' => FALSE,
-      'cascading_selection' => self::CASCADING_SELECTION_NONE,
-      'max_depth' => 0,
-    ] + parent::defaultSettings();
+        'start_minimized' => TRUE,
+        'leaves_only' => FALSE,
+        'select_parents' => FALSE,
+        'cascading_selection' => self::CASCADING_SELECTION_NONE,
+        'max_depth' => 0,
+      ] + parent::defaultSettings();
   }
 
   /**
@@ -79,7 +83,8 @@ class TermReferenceTree extends WidgetBase {
       ],
     ];
 
-    if ($this->fieldDefinition->getFieldStorageDefinition()->getCardinality() !== FieldStorageConfig::CARDINALITY_UNLIMITED) {
+    if ($this->fieldDefinition->getFieldStorageDefinition()
+        ->getCardinality() !== FieldStorageConfig::CARDINALITY_UNLIMITED) {
       $form['select_parents']['#disabled'] = TRUE;
       $form['select_parents']['#default_value'] = FALSE;
       $form['select_parents']['#description'] .= ' <em>' . $this->t("This option is only valid if an unlimited number of values can be selected.") . '</em>';
@@ -146,14 +151,20 @@ class TermReferenceTree extends WidgetBase {
     $element['#type'] = 'checkbox_tree';
     $element['#default_value'] = $items->getValue();
     $element['#vocabularies'] = $vocabularies;
-    $element['#max_choices'] = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
+    $element['#max_choices'] = $this->fieldDefinition->getFieldStorageDefinition()
+      ->getCardinality();
     $element['#leaves_only'] = $this->getSetting('leaves_only');
     $element['#select_parents'] = $this->getSetting('select_parents');
     $element['#cascading_selection'] = $this->getSetting('cascading_selection');
     $element['#value_key'] = 'target_id';
     $element['#max_depth'] = $this->getSetting('max_depth');
     $element['#start_minimized'] = $this->getSetting('start_minimized');
-    $element['#element_validate'] = [[get_class($this), 'validateTermReferenceTreeElement']];
+    $element['#element_validate'] = [
+      [
+        get_class($this),
+        'validateTermReferenceTreeElement',
+      ],
+    ];
     return $element;
   }
 
