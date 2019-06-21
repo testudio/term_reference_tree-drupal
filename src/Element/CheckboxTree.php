@@ -30,7 +30,12 @@ class CheckboxTree extends FormElement {
         [$class, 'preRenderCompositeFormElement'],
       ],
       '#default_value' => [],
-      '#attached' => ['library' => ['term_reference_tree/term_reference_tree_js', 'term_reference_tree/term_reference_tree_css']],
+      '#attached' => [
+        'library' => [
+          'term_reference_tree/term_reference_tree_js',
+          'term_reference_tree/term_reference_tree_css',
+        ],
+      ],
       '#theme' => 'checkbox_tree',
     ];
   }
@@ -47,9 +52,9 @@ class CheckboxTree extends FormElement {
         'term_reference_tree' => [
           'trees' => [
             $element['#id'] => [
-              'max_choices' => $element['#max_choices']
+              'max_choices' => $element['#max_choices'],
             ],
-          ]
+          ],
         ],
       ];
     }
@@ -84,7 +89,7 @@ class CheckboxTree extends FormElement {
     $value = [];
     $element += ['#default_value' => []];
     foreach ($element['#default_value'] as $key) {
-      if(isset($key['target_id'])) {
+      if (isset($key['target_id'])) {
         $value[$key['target_id']] = $key['target_id'];
       }
     }
