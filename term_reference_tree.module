@@ -226,6 +226,7 @@ function _term_reference_tree_get_children($tid, $vid) {
     ->condition('p.parent_target_id', $tid)
     ->addTag('term_access')
     ->addTag('translatable')
+    ->addTag('term_reference_tree_get_children')
     ->orderBy('t.weight')
     ->orderBy('t.name');
   $result = $query->execute();
