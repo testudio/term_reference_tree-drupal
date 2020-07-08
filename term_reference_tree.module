@@ -361,10 +361,12 @@ function _term_reference_tree_build_item($element, $term, $form_state, $value, $
       '#ajax' => isset($element['#ajax']) ? $element['#ajax'] : NULL,
     );
 
-    if ($e['#type'] == 'radio') {
-      $parents_for_id = array_merge($element['#parents'], array($term->tid));
-      $e['#id'] = \Drupal\Component\Utility\Html::getId('edit-' . implode('-', $parents_for_id));
-      $e['#parents'] = $element['#parents'];
+    if (is_array($e)) {
+      if ($e['#type'] == 'radio') {
+        $parents_for_id = array_merge($element['#parents'], array($term->tid));
+        $e['#id'] = \Drupal\Component\Utility\Html::getId('edit-' . implode('-', $parents_for_id));
+        $e['#parents'] = array_merge($element['#parents'], ['wiget']);
+      }
     }
   }
   else {
