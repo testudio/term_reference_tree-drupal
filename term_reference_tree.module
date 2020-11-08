@@ -36,7 +36,13 @@ function term_reference_tree_theme() {
 function theme_checkbox_tree($variables) {
 
   $element = $variables['element'];
-  $element['#children'] = drupal_render_children($element);
+  foreach (Element::children($element) as $key) {
+    // Early rendering to collect the wrapper attributes from
+    // ToolbarItem elements.
+    if (!empty($element[$key])) {
+      $element['#children'] = \Drupal::service('renderer')->render($element[$key]);
+    }
+  }
 
   $attributes = isset($element['#attributes']) ? $element['#attributes'] : [];
   if (isset($element['#id'])) {
@@ -126,7 +132,7 @@ function theme_checkbox_tree_item($variables) {
   }
 
   foreach ($children as $child) {
-    $output .= drupal_render($element[$child]);
+    $output .= \Drupal::service('renderer')->render($element[$child]);
   }
 
   return $output;
@@ -327,7 +333,7 @@ function _term_reference_tree_build_item($element, $term, $form_state, $value, $
   $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
   $t = NULL;
   if (\Drupal::moduleHandler()->moduleExists('locale') && !empty($term->tid)) {
-    $t = \Drupal::entityManager()
+    $t = \Drupal::entityTypeManager()
       ->getStorage('taxonomy_term')
       ->load($term->tid);
     if ($t && $t->hasTranslation($langcode)) {
