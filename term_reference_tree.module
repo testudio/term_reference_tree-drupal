@@ -1,6 +1,7 @@
 <?php
 
 use \Drupal\Core\Render\Element;
+use Drupal\Core\Template\Attribute;
 
 /**
  * Implements hook_theme().
@@ -9,38 +10,38 @@ function term_reference_tree_theme() {
   return [
     'checkbox_tree' => [
       'render element' => 'element',
-      'function' => 'theme_checkbox_tree',
     ],
     'checkbox_tree_level' => [
       'render element' => 'element',
-      'function' => 'theme_checkbox_tree_level',
     ],
     'checkbox_tree_item' => [
       'render element' => 'element',
-      'function' => 'theme_checkbox_tree_item',
     ],
     'checkbox_tree_label' => [
       'render element' => 'element',
-      'function' => 'theme_checkbox_tree_label',
     ],
     'term_tree_list' => [
       'render element' => 'element',
-      'function' => 'theme_term_tree_list',
     ],
   ];
 }
 
 /**
- * Returns HTML for a checkbox_tree form element.
+ * Prepares variables for the checkbox_tree template.
+ *
+ * Default template: checkbox-tree.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An array of elements to display.
  */
-function theme_checkbox_tree($variables) {
-
+function template_preprocess_checkbox_tree(&$variables) {
   $element = $variables['element'];
   foreach (Element::children($element) as $key) {
     // Early rendering to collect the wrapper attributes from
     // ToolbarItem elements.
     if (!empty($element[$key])) {
-      $element['#children'] = \Drupal::service('renderer')->render($element[$key]);
+      $variables['children'][] = $element[$key];
     }
   }
 
@@ -82,69 +83,83 @@ function theme_checkbox_tree($variables) {
   if (!empty($element['#attributes']['class'])) {
     $attributes['class'] = array_merge($attributes['class'], $element['#attributes']['class']);
   }
-
-  return
-    '<div' . new \Drupal\Core\Template\Attribute($attributes) . '>'
-    . (!empty($element['#children']) ? $element['#children'] : '')
-    . '</div>';
+  $variables['attributes'] = new Attribute($attributes);
 }
 
 /**
- * This function prints a list item with a checkbox and an unordered list
- * of all the elements inside it.
+ * Prepares variables for the checkbox_tree_level template.
+ *
+ * Prints a list item with a checkbox and an unordered list of all the elements
+ * inside it.
+ *
+ * Default template: checkbox-tree-level.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An array of elements to display.
  */
-function theme_checkbox_tree_level($variables) {
+function template_preprocess_checkbox_tree_level(&$variables) {
   $element = $variables['element'];
-  $sm = '';
+  $attributes = [];
   if (array_key_exists('#level_start_minimized', $element) && $element['#level_start_minimized']) {
-    $sm = ' style="display: none;"';
+    $attributes['style'] = 'display: none';
   }
-
-  $output = '<ul class="term-reference-tree-level "' . $sm . '>';
+  $attributes['class'] = [
+    'term-reference-tree-level',
+  ];
   $children = Element::children($element);
   foreach ($children as $child) {
-    $output .= '<li>';
-    $output .= \Drupal::service('renderer')->render($element[$child]);
-    $output .= '</li>';
+    $variables['children'][] = $element[$child];
   }
-
-  $output .= '</ul>';
-
-  return $output;
+  $variables['attributes'] = new Attribute($attributes);
 }
 
 /**
- * This function prints a single item in the tree, followed by that item's
- * children (which may be another checkbox_tree_level).
+ * Prepares variables for the checkbox_tree_item template.
+ *
+ * Prints a single item in the tree, followed by that item's children (which may
+ * be another checkbox_tree_level).
+ *
+ * Default template: checkbox-tree-item.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An array of elements to display.
  */
-function theme_checkbox_tree_item($variables) {
+function template_preprocess_checkbox_tree_item(&$variables) {
   $element = $variables['element'];
   $children = Element::children($element);
-  $output = '';
-
-  $sm = $element['#level_start_minimized'] ? ' term-reference-tree-collapsed' : '';
-
+  $attributes = [];
+  if ($element['#level_start_minimized']) {
+    $attributes['class'][] = 'term-reference-tree-collapsed';
+  }
   if (is_array($children) && count($children) > 1) {
-    $output .= '<div class="term-reference-tree-button' . $sm . '"></div>';
+   $attributes['class'][] = 'term-reference-tree-button';
   }
   elseif (!$element['#leaves_only']) {
-    $output .= '<div class="no-term-reference-tree-button"></div>';
+    $attributes['class'][] = 'no-term-reference-tree-button';
   }
-
+  $variables['attributes'] = new Attribute($attributes);
   foreach ($children as $child) {
-    $output .= \Drupal::service('renderer')->render($element[$child]);
+    $variables['children'][] = $element[$child];
   }
 
-  return $output;
 }
 
 /**
- * This function prints a label that cannot be selected.
+ * Prepares variables for the checkbox_tree_label template.
+ *
+ * Prints a label that cannot be selected.
+ *
+ * Default template: checkbox-tree-label.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An array of elements to display.
  */
-function theme_checkbox_tree_label($variables) {
+function template_preprocess_checkbox_tree_label(&$variables) {
   $element = $variables['element'];
-  $output = '<div class="parent-term">' . $element['#value'] . '</div>';
-  return $output;
+  $variables['label'] = $element['#value'];
 }
 
 /**
@@ -395,9 +410,17 @@ function _term_reference_tree_build_item($element, $term, $form_state, $value, $
 }
 
 /**
+ * Prepares variables for the term_tree_list template.
+ *
  * Themes the term tree display (as opposed to the select widget).
+ *
+ * Default template: term-tree-list.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An array of elements to display.
  */
-function theme_term_tree_list($variables) {
+function template_preprocess_term_tree_list(&$variables) {
   $element = &$variables['element'];
   $data = &$element['#data'];
 
@@ -435,10 +458,7 @@ function theme_term_tree_list($variables) {
       $current = &$current['children'][$tid];
     }
   }
-  $output = '<div class="term-tree-list">';
-  $output .= _term_reference_tree_output_list_level($element, $tree);
-  $output .= '</div>';
-  return $output;
+  $variables['children'] = _term_reference_tree_output_list_level($element, $tree);
 }
 
 /**
